@@ -10,7 +10,7 @@ import altair as alt
 import pandas as pd
 import streamlit as st
 
-from uevalls import data, insights, metrics, ui
+from uevalls import advanced, data, insights, metrics, ui
 
 ASSETS = Path(__file__).parent / "assets"
 VALLS = 33936
@@ -31,9 +31,14 @@ def _raw() -> Dict[str, pd.DataFrame]:
     return data.load_all()
 
 
-@st.cache_data(ttl=1800, show_spinner="Cargando datos de la FCF…")
+@st.cache_data(ttl=1800, show_spinner="Carregant dades de la FCF…")
 def cargar(jornadas: tuple) -> Dict[str, pd.DataFrame]:
     return metrics.build(_raw(), jornadas)
+
+
+@st.cache_data(ttl=1800, show_spinner=False)
+def avancades(jornadas: tuple) -> pd.DataFrame:
+    return advanced.taula_lliga(cargar(jornadas))
 
 
 @st.cache_data
@@ -58,13 +63,20 @@ def abrev(cod: int, por_defecto: str = "") -> str:
     return info_equipo(cod).get("abrev") or por_defecto[:3].upper()
 
 
+def num(valor, formato: str = "%.1f") -> str:
+    """Format a number, or an em dash when it does not exist."""
+    if valor is None or (isinstance(valor, float) and valor != valor):
+        return "—"
+    return formato % valor
+
+
 # --------------------------------------------------------------------------- #
 # reusable blocks
 # --------------------------------------------------------------------------- #
-def bloque_ranking(df: pd.DataFrame, columna: str, formato: str, destacado: int | None,
-                   color: str = ui.ROJO, apoyo: str | None = None) -> str:
+def barres_equips(df: pd.DataFrame, columna: str, formato: str, destacado: int | None,
+                  apoyo: str | None = None) -> str:
     if df.empty:
-        return "<div class='sub'>Sin datos en este rango de jornadas.</div>"
+        return "<div class='sub'>Sense dades en aquest rang de jornades.</div>"
     maximo = float(df[columna].max()) or 1.0
     filas = []
     for i, (_, r) in enumerate(df.iterrows(), start=1):
@@ -72,23 +84,20 @@ def bloque_ranking(df: pd.DataFrame, columna: str, formato: str, destacado: int 
         resaltar = destacado is not None and cod == destacado
         filas.append(
             ui.fila_ranking(
-                i,
-                slug(cod),
-                corto(cod, r.get("equipo", "")),
-                formato % r[columna],
+                i, slug(cod), corto(cod, r.get("equipo", "")), formato % r[columna],
                 100.0 * float(r[columna]) / maximo,
-                color if resaltar else ui.SERIE_1,
+                ui.ROJO if resaltar else ui.SERIE_1,
                 "" if not apoyo else str(int(r[apoyo])),
             )
         )
     return "".join(filas)
 
 
-def bloque_ranking_jugadores(df: pd.DataFrame, columna: str, nombre_col: str,
-                             equipo_col: str | None = None,
-                             destacado_equipo: int | None = None) -> str:
+def barres_jugadors(df: pd.DataFrame, columna: str, nombre_col: str,
+                    equipo_col: str | None = None,
+                    destacado_equipo: int | None = None, formato: str = "%d") -> str:
     if df.empty:
-        return "<div class='sub'>Sin datos.</div>"
+        return "<div class='sub'>Sense dades.</div>"
     maximo = float(df[columna].max()) or 1.0
     filas = []
     for i, (_, r) in enumerate(df.iterrows(), start=1):
@@ -96,11 +105,8 @@ def bloque_ranking_jugadores(df: pd.DataFrame, columna: str, nombre_col: str,
         resaltar = destacado_equipo is not None and cod == destacado_equipo
         filas.append(
             ui.fila_ranking(
-                i,
-                slug(cod) if cod else None,
-                str(r[nombre_col]).title(),
-                "%d" % r[columna],
-                100.0 * float(r[columna]) / maximo,
+                i, slug(cod) if cod else None, str(r[nombre_col]).title(),
+                formato % r[columna], 100.0 * float(r[columna]) / maximo,
                 ui.ROJO if resaltar else ui.SERIE_1,
                 ancho_nombre=150 if equipo_col else 180,
             )
@@ -108,49 +114,68 @@ def bloque_ranking_jugadores(df: pd.DataFrame, columna: str, nombre_col: str,
     return "".join(filas)
 
 
-def grafico_tramos(gf: pd.DataFrame, gc: pd.DataFrame | None, etiqueta: str) -> alt.Chart:
-    a = metrics.distribucion_tramos(gf).assign(serie="A favor")
+def barres_simples(items: list[tuple]) -> str:
+    """items: (label, value, colour). A tiny bar chart for three or four categories."""
+    maximo = max([v for _, v, _ in items] + [1])
+    filas = []
+    for etiqueta, valor, color in items:
+        filas.append(
+            "<div class='uev-fila'><div class='uev-nombre' style='width:120px'>%s</div>"
+            "<div class='uev-pista'><div class='uev-barra' style='width:%.1f%%;"
+            "background:%s'></div></div><div class='uev-valor'>%s</div></div>"
+            % (etiqueta, max(100.0 * valor / maximo, 2), color,
+               ("%.0f%%" % valor) if isinstance(valor, float) else str(valor))
+        )
+    return "".join(filas)
+
+
+def grafic_trams(gf: pd.DataFrame, gc: pd.DataFrame | None, etiqueta: str,
+                 color: str = ui.SERIE_1, nom_serie: str = "A favor") -> alt.Chart:
+    a = metrics.distribucion_tramos(gf).assign(serie=nom_serie)
     partes = [a]
     if gc is not None:
         partes.append(metrics.distribucion_tramos(gc).assign(serie="En contra"))
     df = pd.concat(partes, ignore_index=True)
-    base = alt.Chart(df).mark_bar(cornerRadiusTopLeft=4, cornerRadiusTopRight=4)
+    base = alt.Chart(df).mark_bar(
+        color=color, cornerRadiusTopLeft=4, cornerRadiusTopRight=4
+    )
     enc = {
         "x": alt.X("tramo:N", sort=metrics.TRAMO_LABELS, title=None,
-                   axis=alt.Axis(labelAngle=0, labelFontWeight="bold", labelColor=ui.TINTA_2)),
+                   axis=alt.Axis(labelAngle=0, labelFontWeight="bold",
+                                 labelColor=ui.TINTA_2)),
         "y": alt.Y("n:Q", title=etiqueta,
-                   axis=alt.Axis(grid=True, gridColor=ui.REJILLA, titleColor=ui.TINTA_MUDA)),
-        "tooltip": [alt.Tooltip("tramo:N", title="Minutos"),
-                    alt.Tooltip("serie:N", title="Serie"),
-                    alt.Tooltip("n:Q", title="Goles")],
+                   axis=alt.Axis(grid=True, gridColor=ui.REJILLA,
+                                 titleColor=ui.TINTA_MUDA)),
+        "tooltip": [alt.Tooltip("tramo:N", title="Minuts"),
+                    alt.Tooltip("serie:N", title="Sèrie"),
+                    alt.Tooltip("n:Q", title=etiqueta)],
     }
     if gc is not None:
         enc["xOffset"] = alt.XOffset("serie:N")
         enc["color"] = alt.Color(
             "serie:N",
-            scale=alt.Scale(domain=["A favor", "En contra"], range=[ui.SERIE_1, ui.SERIE_2]),
+            scale=alt.Scale(domain=["A favor", "En contra"],
+                            range=[ui.SERIE_1, ui.SERIE_2]),
             legend=alt.Legend(title=None, orient="top", labelColor=ui.TINTA_2,
                               labelFontWeight="bold"),
         )
-    else:
-        base = base.mark_bar(color=ui.SERIE_1, cornerRadiusTopLeft=4, cornerRadiusTopRight=4)
     return base.encode(**enc).properties(height=230).configure_view(stroke=None)
 
 
 # --------------------------------------------------------------------------- #
-# tabs
+# tab: standings
 # --------------------------------------------------------------------------- #
-def tab_clasificacion(frames: Dict[str, pd.DataFrame], foco: int) -> None:
+def tab_classificacio(frames: Dict[str, pd.DataFrame], foco: int) -> None:
     resumen = frames["resumen"].sort_values(
         ["puntos", "gf"], ascending=False
     ).reset_index(drop=True)
     ep = frames["equipo_partido"]
 
     cab = st.columns([3, 1])
-    cab[0].markdown("## Clasificación")
+    cab[0].markdown("## Classificació")
     cab[1].markdown(
-        "<div style='text-align:right;color:%s;font-size:.8rem;font-weight:700;"
-        "padding-top:18px'>PJ &nbsp;·&nbsp; GF-GC &nbsp;·&nbsp; ÚLTIMOS &nbsp;·&nbsp; PTS</div>"
+        "<div style='text-align:right;color:%s;font-size:.78rem;font-weight:700;"
+        "padding-top:18px'>PJ &nbsp;·&nbsp; GF-GC &nbsp;·&nbsp; ÚLTIMS &nbsp;·&nbsp; PTS</div>"
         % ui.TINTA_MUDA,
         unsafe_allow_html=True,
     )
@@ -158,9 +183,7 @@ def tab_clasificacion(frames: Dict[str, pd.DataFrame], foco: int) -> None:
     filas = []
     for i, r in resumen.iterrows():
         cod = int(r["cod_equipo"])
-        forma = list(
-            ep[ep["cod_equipo"] == cod].sort_values("jornada")["signo"].tail(5)
-        )
+        forma = list(ep[ep["cod_equipo"] == cod].sort_values("jornada")["signo"].tail(5))
         filas.append(
             ui.fila_clasificacion(
                 i + 1, slug(cod), corto(cod, r["equipo"]), int(r["pj"]), int(r["puntos"]),
@@ -174,91 +197,184 @@ def tab_clasificacion(frames: Dict[str, pd.DataFrame], foco: int) -> None:
     goles = frames["goles"]
     tj = frames["tarjetas"][frames["tarjetas"]["es_jugador"]]
     with izq:
-        st.markdown("### Cuándo se marca")
-        st.altair_chart(grafico_tramos(goles, None, "Goles"), width="stretch")
+        st.markdown("### Quan es marca")
+        st.altair_chart(grafic_trams(goles, None, "Gols"), width="stretch")
     with cen:
-        st.markdown("### Dónde se marca")
+        st.markdown("### On es marca")
         casa = int(goles["favor_en_casa"].sum())
         fuera = len(goles) - casa
+        total = max(len(goles), 1)
         st.markdown(
             "<div class='uev-card'>"
-            + ui.dato("%d" % casa, "goles del equipo local (%.0f%%)" % (100 * casa / max(len(goles), 1)))
-            + ui.dato("%d" % fuera, "goles del visitante (%.0f%%)" % (100 * fuera / max(len(goles), 1)))
-            + ui.dato("%.2f" % (len(goles) / max(len(frames["partidos"]), 1)), "goles por partido")
+            + ui.linies([
+                ("Gols de l'equip local", "%d" % casa, "%.0f%%" % (100 * casa / total)),
+                ("Gols del visitant", "%d" % fuera, "%.0f%%" % (100 * fuera / total)),
+                ("Gols per partit", "%.2f" % (len(goles) / max(len(frames["partidos"]), 1))),
+                ("Partits jugats", "%d" % len(frames["partidos"])),
+                ("Gols de penal", "%d" % int(goles["es_penal"].sum())),
+                ("Gols en pròpia", "%d" % int(goles["es_propia"].sum())),
+            ])
             + "</div>",
             unsafe_allow_html=True,
         )
     with der:
-        st.markdown("### Partes")
+        st.markdown("### Primera i segona part")
         p1 = int((goles["parte"] == 1).sum())
         p2 = len(goles) - p1
         t1 = int((tj["parte"] == 1).sum())
         t2 = len(tj) - t1
         st.markdown(
             "<div class='uev-card'>"
-            + ui.dato("%d / %d" % (p1, p2), "goles 1ª / 2ª parte")
-            + ui.dato("%d / %d" % (t1, t2), "tarjetas 1ª / 2ª parte")
-            + ui.dato("x%.1f" % (t2 / t1 if t1 else 0), "más tarjetas en la segunda")
+            + ui.linies([
+                ("Gols 1a part", "%d" % p1),
+                ("Gols 2a part", "%d" % p2),
+                ("Targetes 1a part", "%d" % t1),
+                ("Targetes 2a part", "%d" % t2),
+                ("Més targetes a la segona", "x%.1f" % (t2 / t1 if t1 else 0)),
+                ("Targetes a la banqueta",
+                 "%d" % int((~frames["tarjetas"]["es_jugador"]).sum())),
+            ])
             + "</div>",
             unsafe_allow_html=True,
         )
 
-    with st.expander("Ver la tabla completa con todos los números"):
-        tabla = resumen[
-            ["equipo", "pj", "v", "e", "d", "puntos", "gf", "gc", "gf_p1", "gf_p2",
-             "gc_p1", "gc_p2", "gf_casa", "gf_fuera", "gc_casa", "gc_fuera",
-             "amarillas", "rojas", "porterias_cero"]
-        ]
+    with st.expander("Veure la taula completa amb tots els números"):
         st.dataframe(
-            tabla, hide_index=True, width="stretch",
+            resumen[
+                ["equipo", "pj", "v", "e", "d", "puntos", "gf", "gc", "gf_p1", "gf_p2",
+                 "gc_p1", "gc_p2", "gf_casa", "gf_fuera", "gc_casa", "gc_fuera",
+                 "amarillas", "rojas", "porterias_cero"]
+            ],
+            hide_index=True, width="stretch",
             column_config={
-                "equipo": "Equipo", "pj": "PJ", "v": "G", "e": "E", "d": "P",
-                "puntos": "Pts", "gf": "GF", "gc": "GC", "gf_p1": "GF 1ª",
-                "gf_p2": "GF 2ª", "gc_p1": "GC 1ª", "gc_p2": "GC 2ª",
-                "gf_casa": "GF casa", "gf_fuera": "GF fuera", "gc_casa": "GC casa",
-                "gc_fuera": "GC fuera", "amarillas": "Amar.", "rojas": "Rojas",
-                "porterias_cero": "P. a cero",
+                "equipo": "Equip", "pj": "PJ", "v": "G", "e": "E", "d": "P",
+                "puntos": "Pts", "gf": "GF", "gc": "GC", "gf_p1": "GF 1a",
+                "gf_p2": "GF 2a", "gc_p1": "GC 1a", "gc_p2": "GC 2a",
+                "gf_casa": "GF casa", "gf_fuera": "GF fora", "gc_casa": "GC casa",
+                "gc_fuera": "GC fora", "amarillas": "Grogues", "rojas": "Vermelles",
+                "porterias_cero": "Porteries a zero",
             },
         )
 
 
+# --------------------------------------------------------------------------- #
+# tab: rankings
+# --------------------------------------------------------------------------- #
 FAMILIAS = {
-    "Goles": ["gf_total", "gf_casa", "gf_fuera", "gf_p2_pct", "gf_final", "gf_perdiendo"],
+    "Gols": ["gf_total", "gf_casa", "gf_fuera", "gf_p2_pct", "gf_final", "gf_perdiendo"],
     "Defensa": ["gc_total", "porterias_cero"],
-    "Tarjetas": ["tarjetas_p2", "tarjetas_total"],
-    "Banquillo": ["plantilla", "cambios_pronto"],
+    "Targetes": ["tarjetas_p2", "tarjetas_total"],
+    "Banqueta": ["plantilla", "cambios_pronto"],
 }
 
+ROADMAP = """
+**Ja es calcula ara** (tot surt de l'acta oficial, minut a minut)
 
-def tab_rankings(frames: Dict[str, pd.DataFrame], foco: int) -> None:
+Temps guanyant, empatant i perdent · qui marca primer i quants punts dona ·
+remuntades i avantatges deixats escapar · del descans al final · ratxa més llarga
+sense encaixar · gols de titulars i de suplents · minut mitjà del primer gol marcat
+i encaixat · rotació de l'onze entre jornades · jugadors sempre titulars · minut del
+primer i de l'últim canvi · targetes per 90 minuts · quilòmetres de desplaçament ·
+partits on marquen els dos equips · resultat més repetit · gols per tram de 15 minuts
+· gols de penal, de jugada i en pròpia.
+
+**Caldran més jornades** (la dada existeix, però encara no té prou mostra)
+
+Gols als primers 20 minuts · gols de resposta en menys de 10 minuts · gols encaixats
+just després de marcar · penals · rendiment segons l'àrbitro · rendiment segons el dia
+i l'hora del partit · rendiment segons els quilòmetres del desplaçament · ratxes llargues
+de victòries o de porteries a zero · comparació casa/fora fiable.
+
+**Es podria afegir amb més feina de descàrrega**
+
+Temporades anteriors del mateix grup · la resta d'equips del club · la Copa Catalunya ·
+l'històric de sancions i de dies de baixa · el calendari complet amb camps i horaris.
+
+**La FCF no ho publica** (no es pot treure de l'acta, per molt que es vulgui)
+
+Tirs i tirs a porta · xG · possessió · córners · faltes · passades · posicions i
+sistema de joc · mapes de calor · edat i dades físiques dels jugadors · lesions ·
+minuts de descompte reals.
+"""
+
+AVANCATS = [
+    ("pct_guanyant", "Més temps guanyant", "%.0f%%", "OK",
+     "minuts jugats", "minuts_guanyant"),
+    ("pct_perdent", "Més temps perdent", "%.0f%%", "OK", "minuts jugats", None),
+    ("millor_ratxa", "Ratxa més llarga sense encaixar", "%.0f min", "OK",
+     "minuts jugats", None),
+    ("gols_per_partit", "Partits amb més gols (els dos equips)", "%.2f", "OK",
+     "partits jugats", None),
+    ("remuntades", "Més punts rescatats anant per darrere", "%.0f", "DESCARTADO",
+     "remuntades i empats rescatats", None),
+    ("avantatges_perduts", "Més avantatges deixats escapar", "%.0f", "DESCARTADO",
+     "avantatges perduts", None),
+    ("gols_suplents", "Més gols des de la banqueta", "%.0f", "DESCARTADO",
+     "gols de suplents", None),
+    ("sempre_titulars", "Més jugadors sempre titulars", "%.0f", "OK",
+     "compareixences a l'acta", None),
+    ("canvis_mitjans", "Més canvis a l'onze entre jornades", "%.1f", "ORIENTATIVO",
+     "jornades encadenades", None),
+    ("km_totals", "Més quilòmetres de desplaçament", "%.0f km", "OK",
+     "desplaçaments", None),
+]
+
+
+def tab_rankings(frames: Dict[str, pd.DataFrame], foco: int, rango: tuple) -> None:
     resumen = frames["resumen"]
     control = st.columns([3, 1])
     with control[0]:
-        familia = st.pills("Tema", list(FAMILIAS), default="Goles", label_visibility="collapsed")
+        familia = st.pills("Tema", list(FAMILIAS) + ["Avançat"], default="Gols",
+                           label_visibility="collapsed")
     with control[1]:
-        top = st.slider("Equipos por ranking", 3, 10, 5)
-    familia = familia or "Goles"
+        top = st.slider("Equips per rànquing", 3, 10, 5)
+    familia = familia or "Gols"
+
+    if familia == "Avançat":
+        taula = avancades(rango)
+        st.caption(
+            "Aquestes dades es reconstrueixen minut a minut des de l'acta: "
+            "quant de temps va per davant cada equip, quan fa els canvis, quant "
+            "s'ha de desplaçar."
+        )
+        cols = st.columns(2)
+        for i, (columna, titulo, formato, veredicto, base, apoyo) in enumerate(AVANCATS):
+            t = taula.sort_values(columna, ascending=False).head(top)
+            with cols[i % 2]:
+                st.markdown(
+                    ui.tarjeta(
+                        titulo,
+                        barres_equips(t, columna, formato, foco, apoyo),
+                        subtitulo="base: %s" % base,
+                        extra=ui.chip(veredicto),
+                    ),
+                    unsafe_allow_html=True,
+                )
+        with st.expander("Què més es podrà mesurar"):
+            st.markdown(ROADMAP)
+        return
 
     publicables = {r.id: r for r in insights.rankings_publicables(frames)}
     val = insights.validar(frames).set_index("id")
     elegidos = [publicables[i] for i in FAMILIAS[familia] if i in publicables]
 
     if not elegidos:
-        st.info("Ningún ranking de este tema tiene datos suficientes todavía.")
+        st.info("Cap rànquing d'aquest tema té prou dades encara.")
     cols = st.columns(2)
     for i, r in enumerate(elegidos):
         fila = val.loc[r.id]
         tabla = r.tabla(resumen, top)
-        formato = "%.2f" if "por_partido" in r.columna or r.columna.startswith("min_") else "%.0f"
+        formato = "%.2f" if ("por_partido" in r.columna or r.columna.startswith("min_")) \
+            else "%.0f"
         if r.columna == "pct_gf_p2":
             formato = "%.0f%%"
         with cols[i % 2]:
             st.markdown(
                 ui.tarjeta(
                     r.titulo,
-                    bloque_ranking(tabla, r.columna, formato, foco,
-                                   apoyo=r.columna_apoyo if r.columna_apoyo in tabla else None),
-                    subtitulo="%s · base de %d eventos" % (r.unidad, int(fila["n"])),
+                    barres_equips(tabla, r.columna, formato, foco,
+                                  r.columna_apoyo if r.columna_apoyo in tabla else None),
+                    subtitulo="%s · base de %d esdeveniments" % (r.unidad, int(fila["n"])),
                     extra=ui.chip(fila["veredicto"]),
                 ),
                 unsafe_allow_html=True,
@@ -266,34 +382,35 @@ def tab_rankings(frames: Dict[str, pd.DataFrame], foco: int) -> None:
 
     descartados = insights.rankings_descartados(frames)
     if descartados:
-        with st.expander("Lo que todavía no se puede ordenar (%d preguntas)" % len(descartados)):
+        with st.expander("El que encara no es pot ordenar (%d preguntes)" % len(descartados)):
             st.caption(
-                "Hacen falta más jornadas. Se muestran los totales de la liga, sin ranking: "
-                "con tan pocos eventos, el orden entre equipos sería azar."
+                "Calen més jornades. Es mostren els totals de la lliga, sense rànquing: "
+                "amb tan pocs esdeveniments, l'ordre entre equips seria atzar."
             )
             for r in descartados:
-                fila = val.loc[r.id]
-                st.markdown(
-                    "**%s** — %d en toda la liga" % (r.titulo, int(fila["n"]))
-                )
+                st.markdown("**%s** — %d a tota la lliga"
+                            % (r.titulo, int(val.loc[r.id, "n"])))
 
-    with st.expander("Cómo se decide qué se puede mostrar"):
+    with st.expander("Com es decideix què es pot mostrar"):
         v = insights.validar(frames)
         st.dataframe(
             v[["insight", "poblacion", "n", "veredicto"]], hide_index=True,
             width="stretch",
-            column_config={"insight": "Pregunta", "poblacion": "Qué la sostiene",
-                           "n": "Eventos", "veredicto": "Fiabilidad"},
+            column_config={"insight": "Pregunta", "poblacion": "Què la sosté",
+                           "n": "Esdeveniments", "veredicto": "Fiabilitat"},
         )
         st.caption(
-            "Cada pregunta se califica por el número de eventos que la sostienen: "
-            "a partir de %d es dato sólido, a partir de %d son pocos datos, por debajo "
-            "no se ordena. Se recalcula con cada jornada nueva."
+            "Cada pregunta es qualifica pel nombre d'esdeveniments que la sostenen: "
+            "a partir de %d és dada sòlida, a partir de %d són poques dades, per sota "
+            "no s'ordena. Es recalcula amb cada jornada nova."
             % (insights.UMBRAL_OK, insights.UMBRAL_ORIENTATIVO)
         )
 
 
-def selector_equipo(frames: Dict[str, pd.DataFrame]) -> int:
+# --------------------------------------------------------------------------- #
+# tab: team
+# --------------------------------------------------------------------------- #
+def selector_equip(frames: Dict[str, pd.DataFrame]) -> int:
     equipos = frames["equipos"].sort_values("equipo").reset_index(drop=True)
     if "equipo" not in st.session_state:
         st.session_state["equipo"] = VALLS
@@ -305,12 +422,12 @@ def selector_equipo(frames: Dict[str, pd.DataFrame]) -> int:
         for col, (_, r) in zip(cols, trozo.iterrows()):
             cod = int(r["cod_equipo"])
             activo = st.session_state["equipo"] == cod
-            uri = ui.escudo_uri(slug(cod))
             with col:
                 st.markdown(
                     "<div style='text-align:center;padding:6px 0 2px'>"
                     "<img src='%s' style='width:46px;height:46px;object-fit:contain;"
-                    "opacity:%s'></div>" % (uri, "1" if activo else ".55"),
+                    "opacity:%s'></div>"
+                    % (ui.escudo_uri(slug(cod)), "1" if activo else ".55"),
                     unsafe_allow_html=True,
                 )
                 if st.button(abrev(cod, r["equipo"]), key="eq_%d" % cod,
@@ -320,13 +437,380 @@ def selector_equipo(frames: Dict[str, pd.DataFrame]) -> int:
     return int(st.session_state["equipo"])
 
 
-def tab_equipo(frames: Dict[str, pd.DataFrame]) -> None:
-    cod = selector_equipo(frames)
-    resumen = frames["resumen"].sort_values(["puntos", "gf"], ascending=False).reset_index(
-        drop=True
+def _sub_resum(frames, cod, r, mis, gf, gc) -> None:
+    temps = advanced.temps_en_marcador(frames, cod)
+    primer = advanced.primer_gol(frames, cod)
+    rem = advanced.remuntades(frames, cod)
+    perfil = advanced.perfil_partits(frames, cod)
+    minuts = advanced.minuts_primer_gol(frames, cod)
+
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        st.markdown("### Temps al marcador")
+        st.markdown(
+            "<div class='uev-card'>"
+            + barres_simples([
+                ("Guanyant", temps["pct_guanyant"], ui.SERIE_3),
+                ("Empatant", temps["pct_empatant"], ui.SERIE_4),
+                ("Perdent", temps["pct_perdent"], ui.SERIE_2),
+            ])
+            + ui.linies([
+                ("Minuts per davant", "%d min" % temps["guanyant"]),
+                ("Minuts per darrere", "%d min" % temps["perdent"]),
+                ("Minuts jugats", "%d min" % temps["total"]),
+            ])
+            + "</div>",
+            unsafe_allow_html=True,
+        )
+        st.caption("Reconstruït minut a minut des de l'ordre dels gols de l'acta.")
+    with c2:
+        st.markdown("### Qui marca primer")
+        st.markdown(
+            "<div class='uev-card'>"
+            + ui.linies([
+                ("Partits marcant primer", "%d" % primer["marca_primer"]),
+                ("Punts per partit quan marca primer",
+                 num(primer["mitjana_marcant_primer"], "%.2f")),
+                ("Partits encaixant primer", "%d" % primer["encaixa_primer"]),
+                ("Punts per partit quan encaixa primer",
+                 num(primer["mitjana_encaixant_primer"], "%.2f")),
+                ("Minut mitjà del seu 1r gol", num(minuts["primer_marcat"], "%.0f'")),
+                ("Minut mitjà del 1r gol encaixat",
+                 num(minuts["primer_encaixat"], "%.0f'")),
+            ])
+            + "</div>",
+            unsafe_allow_html=True,
+        )
+    with c3:
+        st.markdown("### Com es mouen els partits")
+        st.markdown(
+            "<div class='uev-card'>"
+            + ui.linies([
+                ("Partits anant per darrere", "%d" % rem["va_anar_per_darrere"]),
+                ("Remuntats (victòria)", "%d" % rem["remuntades"]),
+                ("Empats rescatats", "%d" % rem["empats_rescatats"]),
+                ("Avantatges deixats escapar", "%d" % rem["avantatges_perduts"]),
+                ("Partits on marquen els dos", "%d de %d"
+                 % (perfil.get("ambdos_marquen", 0), perfil.get("partits", 0))),
+                ("Resultat més repetit", perfil.get("resultat_mes_repetit", "—")),
+                ("Gols per partit (els dos equips)",
+                 num(perfil.get("gols_per_partit"), "%.2f")),
+            ])
+            + "</div>",
+            unsafe_allow_html=True,
+        )
+
+    izq, der = st.columns([3, 2])
+    with izq:
+        st.markdown("### Quan marca i quan encaixa")
+        st.altair_chart(grafic_trams(gf, gc, "Gols"), width="stretch")
+        st.caption(
+            "La FCF agrupa el descompte: 45+X surt com a minut 44 i 90+X com a 89."
+        )
+    with der:
+        st.markdown("### Casa i fora")
+        casa = mis[mis["es_local"]]
+        fuera = mis[~mis["es_local"]]
+        st.markdown(
+            "<div class='uev-card'>"
+            + ui.linies([
+                ("A casa", "%d-%d" % (casa["gf_total"].sum(), casa["gc_total"].sum()),
+                 "%d partits" % len(casa)),
+                ("Punts a casa", "%d" % casa["puntos"].sum(),
+                 num(casa["puntos"].mean() if len(casa) else None, "%.2f/partit")),
+                ("Fora", "%d-%d" % (fuera["gf_total"].sum(), fuera["gc_total"].sum()),
+                 "%d partits" % len(fuera)),
+                ("Punts fora", "%d" % fuera["puntos"].sum(),
+                 num(fuera["puntos"].mean() if len(fuera) else None, "%.2f/partit")),
+            ])
+            + "</div>",
+            unsafe_allow_html=True,
+        )
+
+
+def _sub_gols(frames, cod, gf) -> None:
+    g = frames["goles"]
+    suplents = advanced.gols_suplents(frames, cod)
+    total = max(len(gf), 1)
+
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        st.markdown("### Golejadors")
+        gol = metrics.goleadores(g, frames["personas"], cod).head(10)
+        st.markdown(
+            "<div class='uev-card'>" + barres_jugadors(gol, "goles", "jugador") + "</div>",
+            unsafe_allow_html=True,
+        )
+        st.caption("Els gols en pròpia no s'atribueixen a cap golejador de l'equip.")
+    with c2:
+        st.markdown("### Amb quin marcador marca")
+        st.markdown(
+            "<div class='uev-card'>"
+            + barres_simples([
+                ("Perdent", int((gf["estado"] == "perdent").sum()), ui.SERIE_2),
+                ("Empat", int((gf["estado"] == "empat").sum()), ui.SERIE_4),
+                ("Guanyant", int((gf["estado"] == "guanyant").sum()), ui.SERIE_3),
+            ])
+            + ui.linies([
+                ("Gols de resposta (≤10 min)", "%d" % int(gf["es_respuesta"].sum())),
+                ("Gols als primers 20 min", "%d" % int((gf["minuto"] <= 20).sum())),
+                ("Gols des del minut 75", "%d" % int((gf["minuto"] >= 75).sum())),
+            ])
+            + "</div>",
+            unsafe_allow_html=True,
+        )
+    with c3:
+        st.markdown("### Tipus de gol")
+        st.markdown(
+            "<div class='uev-card'>"
+            + ui.linies([
+                ("De jugada", "%d" % int((gf["tipo"] == "de jugada").sum())),
+                ("De penal", "%d" % int((gf["tipo"] == "de penal").sum())),
+                ("En pròpia a favor", "%d" % int((gf["tipo"] == "en pròpia").sum())),
+                ("Marcats per titulars", "%d" % suplents["titulars"]),
+                ("Marcats per suplents", "%d" % suplents["suplents"],
+                 "%.0f%%" % (100 * suplents["suplents"] / max(suplents["total"], 1))),
+                ("Golejadors diferents",
+                 "%d" % int(gf[~gf["es_propia"]]["cod_persona"].nunique())),
+                ("1a part / 2a part", "%d / %d"
+                 % (int((gf["parte"] == 1).sum()), int((gf["parte"] == 2).sum()))),
+            ])
+            + "</div>",
+            unsafe_allow_html=True,
+        )
+        st.caption("Del total de %d gols a favor." % total)
+
+    st.markdown("### Llista completa de gols")
+    detalle = gf.merge(
+        frames["personas"].rename(columns={"nombre": "jugador"}),
+        on="cod_persona", how="left",
     )
+    detalle["on"] = detalle["favor_en_casa"].map({True: "Casa", False: "Fora"})
+    detalle["marcador abans"] = (
+        detalle["marcador_local_antes"].astype(str) + "-"
+        + detalle["marcador_visitante_antes"].astype(str)
+    )
+    st.dataframe(
+        detalle.sort_values(["jornada", "minuto"])[
+            ["jornada", "equipo_contra", "on", "jugador", "minuto", "parte", "tipo",
+             "estado", "marcador abans"]
+        ],
+        hide_index=True, width="stretch",
+        column_config={"jornada": "J", "equipo_contra": "Rival", "minuto": "Min",
+                       "parte": "Part", "tipo": "Tipus",
+                       "estado": "Marcador en marcar"},
+    )
+
+
+def _sub_defensa(frames, cod, gc, r) -> None:
+    ratxa = advanced.ratxa_sense_encaixar(frames, cod)
+    tj = frames["tarjetas"]
+    mis_t = tj[(tj["cod_equipo"] == cod) & (tj["es_jugador"])]
+    banqueta = tj[(tj["cod_equipo"] == cod) & (~tj["es_jugador"])]
+
+    c1, c2 = st.columns(2)
+    with c1:
+        st.markdown("### Gols encaixats")
+        st.altair_chart(grafic_trams(gc, None, "Gols encaixats", ui.SERIE_2, "En contra"),
+                        width="stretch")
+        # the state stored on a goal belongs to the team that scored it, so for the
+        # conceding side it reads the other way round
+        inverso = {"perdent": "guanyant", "guanyant": "perdent", "empat": "empat"}
+        estats = gc["estado"].map(inverso)
+        st.markdown(
+            "<div class='uev-card'>"
+            + ui.linies([
+                ("Porteries a zero", "%d de %d" % (int(r["porterias_cero"]), int(r["pj"]))),
+                ("Ratxa més llarga sense encaixar", "%d min" % ratxa["millor_ratxa"]),
+                ("Ratxa actual", "%d min" % ratxa["ratxa_actual"]),
+                ("Encaixa anant guanyant", "%d" % int((estats == "guanyant").sum())),
+                ("Encaixa amb empat", "%d" % int((estats == "empat").sum())),
+                ("Encaixa anant perdent", "%d" % int((estats == "perdent").sum())),
+                ("Encaixa ≤10 min després de marcar",
+                 "%d" % int(gc["es_respuesta"].sum())),
+            ])
+            + "</div>",
+            unsafe_allow_html=True,
+        )
+    with c2:
+        st.markdown("### Targetes")
+        if len(mis_t):
+            st.altair_chart(grafic_trams(mis_t, None, "Targetes", ui.SERIE_4, "Targetes"),
+                            width="stretch")
+        per90 = advanced.targetes_per_90(frames, cod)
+        st.markdown(
+            "<div class='uev-card'>"
+            + ui.linies([
+                ("Grogues", "%d" % int(r["amarillas"])),
+                ("Vermelles", "%d" % int(r["rojas"])),
+                ("Per partit", "%.2f" % r["tarjetas_por_partido"]),
+                ("A la segona part", "%d de %d"
+                 % (int((mis_t["parte"] == 2).sum()), len(mis_t))),
+                ("A la banqueta (no compten als rànquings)", "%d" % len(banqueta)),
+            ])
+            + "</div>",
+            unsafe_allow_html=True,
+        )
+        if len(per90):
+            st.markdown("**Targetes per 90 minuts** (mínim 90 min jugats)")
+            st.markdown(
+                "<div class='uev-card'>"
+                + barres_jugadors(per90.head(8), "per_90", "persona", formato="%.2f")
+                + "</div>",
+                unsafe_allow_html=True,
+            )
+
+
+def _sub_plantilla(frames, cod) -> None:
+    rot = advanced.rotacio(frames, cod)
+    canvis = advanced.perfil_canvis(frames, cod)
+    mn = frames["minutos"]
+    mios = mn[(mn["cod_equipo"] == cod) & (mn["jugo"])]
+
+    c1, c2 = st.columns([3, 2])
+    with c1:
+        st.markdown("### Minuts jugats")
+        top_m = (
+            mios.groupby("persona")["minutos"].sum().rename("minutos").reset_index()
+            .sort_values("minutos", ascending=False).head(14)
+        )
+        st.markdown(
+            "<div class='uev-card'>" + barres_jugadors(top_m, "minutos", "persona")
+            + "</div>",
+            unsafe_allow_html=True,
+        )
+    with c2:
+        st.markdown("### Rotació i banqueta")
+        st.markdown(
+            "<div class='uev-card'>"
+            + ui.linies([
+                ("Jugadors utilitzats", "%d" % rot["jugadors_utilitzats"]),
+                ("Sempre titulars", "%d" % rot["sempre_titulars"]),
+                ("Canvis a l'onze per jornada", num(rot["canvis_mitjans"], "%.1f"),
+                 "de %d a %d" % (rot["canvis_minim"], rot["canvis_maxim"])),
+                ("Substitucions", "%d" % canvis.get("canvis", 0)),
+                ("Per partit", num(canvis.get("canvis_per_partit"), "%.1f")),
+                ("Minut del primer canvi", num(canvis.get("primer_canvi"), "%.0f'")),
+                ("Minut de l'últim canvi", num(canvis.get("ultim_canvi"), "%.0f'")),
+                ("Canvis abans del minut 60", "%d" % canvis.get("abans_del_60", 0)),
+            ])
+            + "</div>",
+            unsafe_allow_html=True,
+        )
+
+    st.markdown("### Plantilla completa")
+    plant = (
+        mios.groupby("persona")
+        .agg(partits=("cod_acta", "nunique"), titular=("titular", "sum"),
+             minuts=("minutos", "sum"))
+        .reset_index()
+    )
+    tj = frames["tarjetas"]
+    tarj = (
+        tj[(tj["cod_equipo"] == cod) & (tj["es_jugador"])]
+        .groupby("persona").size().rename("targetes").reset_index()
+    )
+    gol_j = metrics.goleadores(frames["goles"], frames["personas"], cod)[
+        ["jugador", "goles"]
+    ].rename(columns={"jugador": "persona", "goles": "gols"})
+    plant = plant.merge(tarj, on="persona", how="left").merge(gol_j, on="persona",
+                                                              how="left")
+    plant[["targetes", "gols"]] = plant[["targetes", "gols"]].fillna(0).astype(int)
+    plant["min_per_partit"] = (plant["minuts"] / plant["partits"]).round(0).astype(int)
+    st.dataframe(
+        plant.sort_values("minuts", ascending=False), hide_index=True, width="stretch",
+        column_config={"persona": "Jugador", "partits": "PJ", "titular": "Titular",
+                       "minuts": "Minuts", "min_per_partit": "Min/partit",
+                       "targetes": "Targetes", "gols": "Gols"},
+    )
+    st.caption(
+        "Minuts estimats: titular des del 0, suplent des del seu minut d'entrada, "
+        "fins a la substitució, la vermella o el 90. El descompte no es compta."
+    )
+
+
+def _sub_partits(frames, cod, mis) -> None:
+    c1, c2 = st.columns([2, 3])
+    with c1:
+        st.markdown("### Partits")
+        filas = ""
+        for _, p in mis.iterrows():
+            rival_cod = int(p["cod_equipo_rival"])
+            filas += (
+                "<div class='uev-fila'>"
+                "<div class='uev-pos'>J%d</div>"
+                "<img class='uev-escudo' src='%s'>"
+                "<div class='uev-nombre'>%s</div>"
+                "<div class='uev-apoyo' style='width:46px'>%s</div>"
+                "<div class='uev-valor'>%d-%d</div>"
+                "<div style='width:26px;text-align:right;font-weight:800;color:%s'>%s</div>"
+                "</div>"
+                % (int(p["jornada"]), ui.escudo_uri(slug(rival_cod)),
+                   corto(rival_cod, p["rival"]), "Casa" if p["es_local"] else "Fora",
+                   int(p["gf_total"]), int(p["gc_total"]),
+                   ui.SIGNO_COLOR[p["signo"]], p["signo"])
+            )
+        st.markdown("<div class='uev-card'>" + filas + "</div>", unsafe_allow_html=True)
+    with c2:
+        st.markdown("### Del descans al final")
+        df = advanced.descans_final(frames, cod)
+        if len(df):
+            guanyats = int(df[df["diferencia"] > 0]["diferencia"].sum())
+            perduts = int(-df[df["diferencia"] < 0]["diferencia"].sum())
+            st.markdown(
+                "<div class='uev-card'>"
+                + ui.linies([
+                    ("Punts guanyats a la segona part", "+%d" % guanyats),
+                    ("Punts perduts a la segona part", "-%d" % perduts),
+                    ("Partits guanyant al descans",
+                     "%d" % int((df["signe_descans"] == "V").sum())),
+                    ("Partits perdent al descans",
+                     "%d" % int((df["signe_descans"] == "D").sum())),
+                ])
+                + "</div>",
+                unsafe_allow_html=True,
+            )
+            st.dataframe(
+                df[["jornada", "rival", "descans", "final", "signe_descans",
+                    "signe_final", "punts", "diferencia"]],
+                hide_index=True, width="stretch",
+                column_config={"jornada": "J", "rival": "Rival", "descans": "Descans",
+                               "final": "Final", "signe_descans": "Al descans",
+                               "signe_final": "Al final", "punts": "Pts",
+                               "diferencia": "Pts guanyats/perduts"},
+            )
+
+    st.markdown("### Desplaçaments")
+    km = advanced.desplacaments(frames, cod)
+    if km.empty:
+        st.info("Sense dades de camp per calcular distàncies.")
+        return
+    izq, der = st.columns([1, 3])
+    izq.markdown(
+        "<div class='uev-card'>"
+        + ui.linies([
+            ("Quilòmetres totals", "%.0f km" % km["km"].sum()),
+            ("Mitjana per desplaçament", "%.0f km" % km["km"].mean()),
+            ("Viatge més llarg", "%.0f km" % km["km"].max()),
+            ("Punts fora de casa", "%d" % int(km["punts"].sum())),
+        ])
+        + "</div>",
+        unsafe_allow_html=True,
+    )
+    der.dataframe(
+        km, hide_index=True, width="stretch",
+        column_config={"jornada": "J", "rival": "Rival", "camp": "Camp",
+                       "km": "Km (línia recta)", "punts": "Pts", "resultat": "Resultat"},
+    )
+
+
+def tab_equip(frames: Dict[str, pd.DataFrame]) -> None:
+    cod = selector_equip(frames)
+    resumen = frames["resumen"].sort_values(
+        ["puntos", "gf"], ascending=False
+    ).reset_index(drop=True)
     if cod not in set(resumen["cod_equipo"]):
-        st.info("Este equipo no tiene partidos en el rango de jornadas elegido.")
+        st.info("Aquest equip no té partits en el rang de jornades triat.")
         return
     pos = int(resumen.index[resumen["cod_equipo"] == cod][0]) + 1
     r = resumen[resumen["cod_equipo"] == cod].iloc[0]
@@ -334,175 +818,53 @@ def tab_equipo(frames: Dict[str, pd.DataFrame]) -> None:
     g = frames["goles"]
     gf = g[g["cod_equipo_favor"] == cod]
     gc = g[g["cod_equipo_contra"] == cod]
-    ep = frames["equipo_partido"]
-    mis = ep[ep["cod_equipo"] == cod].sort_values("jornada")
-    tj = frames["tarjetas"]
-    mis_t = tj[(tj["cod_equipo"] == cod) & (tj["es_jugador"])]
+    mis = frames["equipo_partido"]
+    mis = mis[mis["cod_equipo"] == cod].sort_values("jornada")
 
     st.divider()
     cab = st.columns([1, 5])
-    uri = ui.escudo_uri(slug(cod))
     cab[0].markdown(
-        "<img src='%s' style='width:96px;height:96px;object-fit:contain'>" % uri,
+        "<img src='%s' style='width:96px;height:96px;object-fit:contain'>"
+        % ui.escudo_uri(slug(cod)),
         unsafe_allow_html=True,
     )
     cab[1].markdown(
         "<h1 style='margin-bottom:0'>%s</h1>"
-        "<div style='color:%s;font-weight:700;font-size:1rem'>%dº · %d puntos · "
-        "%d partidos · %d-%d-%d</div>"
+        "<div style='color:%s;font-weight:700;font-size:1rem'>%dè · %d punts · "
+        "%d partits · %d-%d-%d</div>"
         % (corto(cod, r["equipo"]), ui.TINTA_2, pos, int(r["puntos"]), int(r["pj"]),
            int(r["v"]), int(r["e"]), int(r["d"])),
         unsafe_allow_html=True,
     )
 
     k = st.columns(6)
-    k[0].metric("Goles a favor · %.2f/partido" % r["gf_por_partido"], int(r["gf"]))
-    k[1].metric("Goles en contra · %.2f/partido" % r["gc_por_partido"], int(r["gc"]))
-    k[2].metric("GF 1ª / 2ª parte", "%d / %d" % (int(r["gf_p1"]), int(r["gf_p2"])))
-    k[3].metric("GC 1ª / 2ª parte", "%d / %d" % (int(r["gc_p1"]), int(r["gc_p2"])))
-    k[4].metric("Tarjetas · %.2f/partido" % r["tarjetas_por_partido"],
+    k[0].metric("Gols a favor · %.2f/partit" % r["gf_por_partido"], int(r["gf"]))
+    k[1].metric("Gols en contra · %.2f/partit" % r["gc_por_partido"], int(r["gc"]))
+    k[2].metric("GF 1a / 2a part", "%d / %d" % (int(r["gf_p1"]), int(r["gf_p2"])))
+    k[3].metric("GC 1a / 2a part", "%d / %d" % (int(r["gc_p1"]), int(r["gc_p2"])))
+    k[4].metric("Targetes · %.2f/partit" % r["tarjetas_por_partido"],
                 int(r["amarillas"] + r["rojas"]))
-    k[5].metric("Porterías a cero", int(r["porterias_cero"]))
+    k[5].metric("Porteries a zero", int(r["porterias_cero"]))
 
-    izq, der = st.columns([3, 2])
-    with izq:
-        st.markdown("### Cuándo marca y cuándo encaja")
-        st.altair_chart(grafico_tramos(gf, gc, "Goles"), width="stretch")
-        st.caption(
-            "La FCF agrupa el descuento: 45+X aparece como minuto 44 y 90+X como 89."
-        )
-    with der:
-        st.markdown("### Con qué marcador marca")
-        total = max(len(gf), 1)
-        barras = ""
-        for estado, color in (("perdiendo", ui.SERIE_2), ("empate", ui.SERIE_4),
-                              ("ganando", ui.SERIE_3)):
-            n = int((gf["estado"] == estado).sum())
-            barras += (
-                "<div class='uev-fila'><div class='uev-nombre' style='width:92px'>%s</div>"
-                "<div class='uev-pista'><div class='uev-barra' style='width:%.1f%%;"
-                "background:%s'></div></div><div class='uev-valor'>%d</div></div>"
-                % (estado.capitalize(), max(100.0 * n / total, 2), color, n)
-            )
-        st.markdown("<div class='uev-card'>" + barras + "</div>", unsafe_allow_html=True)
-
-        casa = mis[mis["es_local"]]
-        fuera = mis[~mis["es_local"]]
-        st.markdown(
-            "<div class='uev-card'>"
-            + ui.dato("%d - %d" % (casa["gf_total"].sum(), casa["gc_total"].sum()),
-                      "en casa (%d partidos)" % len(casa))
-            + ui.dato("%d - %d" % (fuera["gf_total"].sum(), fuera["gc_total"].sum()),
-                      "fuera (%d partidos)" % len(fuera))
-            + "</div>",
-            unsafe_allow_html=True,
-        )
-
-    col1, col2, col3 = st.columns(3)
-    goleadores = metrics.goleadores(g, frames["personas"], cod).head(8)
-    with col1:
-        st.markdown("### Goleadores")
-        if len(goleadores):
-            st.markdown(
-                "<div class='uev-card'>"
-                + bloque_ranking_jugadores(goleadores, "goles", "jugador", None, None)
-                + "</div>",
-                unsafe_allow_html=True,
-            )
-        else:
-            st.info("Todavía sin goles.")
-    with col2:
-        st.markdown("### Más tarjetas")
-        top_t = (
-            mis_t.groupby("persona").size().rename("tarjetas").reset_index()
-            .sort_values("tarjetas", ascending=False).head(8)
-        )
-        if len(top_t):
-            st.markdown(
-                "<div class='uev-card'>"
-                + bloque_ranking_jugadores(top_t, "tarjetas", "persona", None, None)
-                + "</div>",
-                unsafe_allow_html=True,
-            )
-        else:
-            st.info("Sin tarjetas.")
-    with col3:
-        st.markdown("### Más minutos")
-        mn = frames["minutos"]
-        top_m = (
-            mn[(mn["cod_equipo"] == cod) & (mn["jugo"])]
-            .groupby("persona")["minutos"].sum().rename("minutos").reset_index()
-            .sort_values("minutos", ascending=False).head(8)
-        )
-        st.markdown(
-            "<div class='uev-card'>"
-            + bloque_ranking_jugadores(top_m, "minutos", "persona", None, None)
-            + "</div>",
-            unsafe_allow_html=True,
-        )
-
-    st.markdown("### Partidos y goles")
-    izq, der = st.columns([2, 3])
-    with izq:
-        filas = ""
-        for _, p in mis.iterrows():
-            color = ui.SIGNO_COLOR[p["signo"]]
-            rival_cod = int(p["cod_equipo_rival"])
-            filas += (
-                "<div class='uev-fila'>"
-                "<div class='uev-pos'>J%d</div>"
-                "<img class='uev-escudo' src='%s'>"
-                "<div class='uev-nombre'>%s</div>"
-                "<div class='uev-apoyo' style='width:50px'>%s</div>"
-                "<div class='uev-valor'>%d-%d</div>"
-                "<div style='width:26px;text-align:right;font-weight:800;color:%s'>%s</div>"
-                "</div>"
-                % (int(p["jornada"]), ui.escudo_uri(slug(rival_cod)),
-                   corto(rival_cod, p["rival"]), "Casa" if p["es_local"] else "Fuera",
-                   int(p["gf_total"]), int(p["gc_total"]), color, p["signo"])
-            )
-        st.markdown("<div class='uev-card'>" + filas + "</div>", unsafe_allow_html=True)
-    with der:
-        detalle = gf.merge(
-            frames["personas"].rename(columns={"nombre": "jugador"}),
-            on="cod_persona", how="left",
-        )
-        detalle["dónde"] = detalle["favor_en_casa"].map({True: "Casa", False: "Fuera"})
-        st.dataframe(
-            detalle.sort_values(["jornada", "minuto"])[
-                ["jornada", "equipo_contra", "dónde", "jugador", "minuto", "tipo", "estado"]
-            ],
-            hide_index=True, width="stretch", height=330,
-            column_config={"jornada": "J", "equipo_contra": "Rival", "minuto": "Min",
-                           "tipo": "Tipo", "estado": "Marcador al marcar"},
-        )
-
-    with st.expander("Plantilla completa: minutos, titularidades y tarjetas"):
-        mn = frames["minutos"]
-        plant = (
-            mn[(mn["cod_equipo"] == cod) & (mn["jugo"])]
-            .groupby("persona")
-            .agg(partidos=("cod_acta", "nunique"), titular=("titular", "sum"),
-                 minutos=("minutos", "sum"))
-            .reset_index()
-        )
-        tarj = mis_t.groupby("persona").size().rename("tarjetas").reset_index()
-        gol_j = metrics.goleadores(g, frames["personas"], cod)[["jugador", "goles"]].rename(
-            columns={"jugador": "persona"}
-        )
-        plant = plant.merge(tarj, on="persona", how="left").merge(
-            gol_j, on="persona", how="left"
-        )
-        plant[["tarjetas", "goles"]] = plant[["tarjetas", "goles"]].fillna(0).astype(int)
-        st.dataframe(
-            plant.sort_values("minutos", ascending=False), hide_index=True,
-            width="stretch",
-            column_config={"persona": "Jugador", "partidos": "PJ", "titular": "Titular",
-                           "minutos": "Minutos", "tarjetas": "Tarjetas", "goles": "Goles"},
-        )
+    s1, s2, s3, s4, s5 = st.tabs(
+        ["Resum", "Gols", "Defensa i targetes", "Plantilla", "Partits i context"]
+    )
+    with s1:
+        _sub_resum(frames, cod, r, mis, gf, gc)
+    with s2:
+        _sub_gols(frames, cod, gf)
+    with s3:
+        _sub_defensa(frames, cod, gc, r)
+    with s4:
+        _sub_plantilla(frames, cod)
+    with s5:
+        _sub_partits(frames, cod, mis)
 
 
-def tab_jugadores(frames: Dict[str, pd.DataFrame], foco: int) -> None:
+# --------------------------------------------------------------------------- #
+# tab: players
+# --------------------------------------------------------------------------- #
+def tab_jugadors(frames: Dict[str, pd.DataFrame], foco: int) -> None:
     g = frames["goles"]
     personas = frames["personas"]
     gol = metrics.goleadores(g, personas).head(12)
@@ -514,8 +876,8 @@ def tab_jugadores(frames: Dict[str, pd.DataFrame], foco: int) -> None:
     tj = frames["tarjetas"]
     tj = tj[tj["es_jugador"]]
     tar = (
-        tj.groupby(["cod_persona", "persona", "cod_equipo"]).size().rename("tarjetas")
-        .reset_index().sort_values("tarjetas", ascending=False).head(12)
+        tj.groupby(["cod_persona", "persona", "cod_equipo"]).size().rename("targetes")
+        .reset_index().sort_values("targetes", ascending=False).head(12)
     )
     mn = frames["minutos"]
     minu = (
@@ -525,38 +887,38 @@ def tab_jugadores(frames: Dict[str, pd.DataFrame], foco: int) -> None:
 
     c1, c2, c3 = st.columns(3)
     with c1:
-        st.markdown("### Máximos goleadores")
+        st.markdown("### Màxims golejadors")
         st.markdown(
             "<div class='uev-card'>"
-            + bloque_ranking_jugadores(gol, "goles", "jugador", "cod_equipo_favor", foco)
+            + barres_jugadors(gol, "goles", "jugador", "cod_equipo_favor", foco)
             + "</div>",
             unsafe_allow_html=True,
         )
-        st.caption("Sin goles en propia: esos cuentan para el rival, no para el autor.")
+        st.caption("Sense gols en pròpia: compten per al rival, no per a l'autor.")
     with c2:
-        st.markdown("### Más tarjetas")
+        st.markdown("### Més targetes")
         st.markdown(
             "<div class='uev-card'>"
-            + bloque_ranking_jugadores(tar, "tarjetas", "persona", "cod_equipo", foco)
+            + barres_jugadors(tar, "targetes", "persona", "cod_equipo", foco)
             + "</div>",
             unsafe_allow_html=True,
         )
     with c3:
-        st.markdown("### Más minutos")
+        st.markdown("### Més minuts")
         st.markdown(
             "<div class='uev-card'>"
-            + bloque_ranking_jugadores(minu, "minutos", "persona", "cod_equipo", foco)
+            + barres_jugadors(minu, "minutos", "persona", "cod_equipo", foco)
             + "</div>",
             unsafe_allow_html=True,
         )
 
-    with st.expander("Tabla completa de goleadores"):
+    with st.expander("Taula completa de golejadors"):
         completo = metrics.goleadores(g, personas)
         st.dataframe(
             completo[["jugador", "equipo", "goles", "penales", "p1", "p2"]],
             hide_index=True, width="stretch",
-            column_config={"jugador": "Jugador", "equipo": "Equipo", "goles": "Goles",
-                           "penales": "De penal", "p1": "1ª parte", "p2": "2ª parte"},
+            column_config={"jugador": "Jugador", "equipo": "Equip", "goles": "Gols",
+                           "penales": "De penal", "p1": "1a part", "p2": "2a part"},
         )
 
 
@@ -569,7 +931,7 @@ def main() -> None:
     try:
         jornadas_max = int(_raw()["partidos"].query("jugado")["jornada"].max())
     except Exception as exc:
-        st.error("No se han podido cargar los datos: %s" % exc)
+        st.error("No s'han pogut carregar les dades: %s" % exc)
         st.stop()
         return
 
@@ -581,45 +943,46 @@ def main() -> None:
             "<div><div style='font-size:1.6rem;font-weight:800;line-height:1.1'>"
             "Lliga Elit · Grup 1</div>"
             "<div style='color:%s;font-weight:700;font-size:.85rem'>Temporada 2026-27 · "
-            "datos oficiales FCF</div></div></div>"
+            "dades oficials FCF</div></div></div>"
             % (ui.escudo_uri("valls"), ui.TINTA_MUDA),
             unsafe_allow_html=True,
         )
     with cab[1]:
-        rango = st.slider("Jornadas", 1, jornadas_max, (1, jornadas_max))
+        rango = st.slider("Jornades", 1, jornadas_max, (1, jornadas_max))
     with cab[2]:
         st.markdown("<div style='height:28px'></div>", unsafe_allow_html=True)
-        with st.popover("Leyenda"):
+        with st.popover("Llegenda"):
             st.markdown(
-                "**Fiabilidad de cada dato**\n\n"
-                "- %s con suficientes eventos detrás\n"
-                "- %s el orden puede cambiar con un partido\n"
-                "- %s no se ordena, solo se enseña el total\n\n"
-                "**Tres avisos sobre la fuente**\n\n"
-                "- El descuento va agrupado: 45+X sale como minuto 44 y 90+X como 89.\n"
-                "- Los equipos han jugado entre 3 y 5 partidos, así que los rankings "
-                "de volumen van por partido.\n"
-                "- Las tarjetas del banquillo se cuentan aparte y no entran en rankings."
+                "**Fiabilitat de cada dada**\n\n"
+                "- %s amb prou esdeveniments al darrere\n"
+                "- %s l'ordre pot canviar amb un partit\n"
+                "- %s no s'ordena, només s'ensenya el total\n\n"
+                "**Tres avisos sobre la font**\n\n"
+                "- El descompte va agrupat: 45+X surt com a minut 44 i 90+X com a 89.\n"
+                "- Els equips han jugat entre 3 i 5 partits, així que els rànquings "
+                "de volum van per partit.\n"
+                "- Les targetes de la banqueta es compten a part i no entren als "
+                "rànquings."
                 % (ui.chip("OK"), ui.chip("ORIENTATIVO"), ui.chip("DESCARTADO")),
                 unsafe_allow_html=True,
             )
 
     frames = cargar(tuple(rango))
     if frames["resumen"].empty:
-        st.warning("No hay partidos jugados en ese rango de jornadas.")
+        st.warning("No hi ha partits jugats en aquest rang de jornades.")
         st.stop()
         return
 
     foco = int(st.session_state.get("equipo", VALLS))
-    t1, t2, t3, t4 = st.tabs(["Clasificación", "Rankings", "Equipo", "Jugadores"])
+    t1, t2, t3, t4 = st.tabs(["Classificació", "Rànquings", "Equip", "Jugadors"])
     with t1:
-        tab_clasificacion(frames, foco)
+        tab_classificacio(frames, foco)
     with t2:
-        tab_rankings(frames, foco)
+        tab_rankings(frames, foco, tuple(rango))
     with t3:
-        tab_equipo(frames)
+        tab_equip(frames)
     with t4:
-        tab_jugadores(frames, foco)
+        tab_jugadors(frames, foco)
 
 
 if __name__ == "__main__":

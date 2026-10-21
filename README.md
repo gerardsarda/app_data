@@ -1,133 +1,159 @@
 # UE Valls · Analítica Lliga Elit Grup 1
 
-App en Streamlit sobre los datos oficiales de la FCF (Lliga Elit, Grup 1, temporada
-2026-27) guardados en el proyecto Supabase **UEValls**.
+App en Streamlit sobre les dades oficials de la FCF (Lliga Elit, Grup 1, temporada
+2026-27) desades al projecte Supabase **UEValls**.
 
-Cuatro pestañas:
+## Les quatre pestanyes
 
-- **Clasificación** — tabla visual con escudo, diferencia de goles, racha de los últimos
-  cinco partidos y puntos; debajo, cuándo y dónde se marca en la liga.
-- **Rankings** — tops por tema (Goles, Defensa, Tarjetas, Banquillo) en barras, con el
-  equipo seleccionado resaltado en rojo y la etiqueta de fiabilidad en cada tarjeta.
-- **Equipo** — rejilla con los 16 escudos para elegir equipo y, debajo, su informe:
-  KPIs, cuándo marca y encaja, con qué marcador marca, casa/fuera, goleadores, tarjetas,
-  minutos, partidos y lista completa de goles.
-- **Jugadores** — goleadores, tarjetas y minutos de toda la liga.
+- **Classificació** — taula visual amb escut, diferència de gols, ratxa dels últims
+  cinc partits i punts; a sota, quan i on es marca a la lliga.
+- **Rànquings** — tops per tema (Gols, Defensa, Targetes, Banqueta i **Avançat**) en
+  barres, amb l'equip seleccionat ressaltat en vermell i l'etiqueta de fiabilitat a
+  cada targeta.
+- **Equip** — graella amb els 16 escuts per triar equip i, a sota, el seu informe
+  repartit en cinc sub-pestanyes: Resum, Gols, Defensa i targetes, Plantilla, i
+  Partits i context.
+- **Jugadors** — golejadors, targetes i minuts de tota la lliga.
 
-Un slider de jornadas en la cabecera recalcula **toda** la app sobre el rango elegido, y
-el botón *Leyenda* explica las etiquetas de fiabilidad y los tres avisos sobre la fuente.
+Un slider de jornades a la capçalera recalcula **tota** l'app sobre el rang triat, i
+el botó *Llegenda* explica les etiquetes de fiabilitat i els avisos sobre la font.
 
-## Cómo se validan los insights
+## Quines estadístiques hi ha
 
-Con 5 jornadas disputadas hay 34 partidos, 90 goles y 186 tarjetas a jugadores. A ese
-volumen algunas preguntas se pueden responder y otras no, así que **cada insight declara
-el número de eventos que lo sostiene y se califica antes de llegar a la app**:
+**Ja es calculen** — tot surt de l'acta oficial, reconstruint els partits minut a minut:
 
-| Veredicto | Significado |
+| Bloc | Mètriques |
 |---|---|
-| `OK` | hay eventos suficientes para describir una tendencia |
-| `ORIENTATIVO` | real pero frágil: un partido puede reordenar el ranking |
-| `DESCARTADO` | demasiados pocos eventos para ordenar equipos; se muestra como dato suelto |
+| Marcador | temps guanyant / empatant / perdent, qui marca primer i quants punts dona, minut mitjà del primer gol marcat i encaixat, amb quin marcador arriba cada gol |
+| Partits | remuntades, avantatges deixats escapar, del descans al final amb els punts guanyats o perduts a la segona part, partits on marquen els dos, resultat més repetit |
+| Atac | golejadors, gols per tram de 15 minuts, de jugada / de penal / en pròpia, gols de titulars i de suplents, golejadors diferents, gols de resposta |
+| Defensa | porteries a zero, ratxa més llarga sense encaixar, en quin estat del marcador encaixa, gols encaixats per tram |
+| Plantilla | minuts estimats, jugadors utilitzats, sempre titulars, canvis a l'onze entre jornades, minut del primer i de l'últim canvi, targetes per 90 minuts |
+| Context | quilòmetres de desplaçament a cada camp, punts aconseguits fora |
 
-Los umbrales están en `uevalls/insights.py` (`UMBRAL_OK`, `UMBRAL_ORIENTATIVO`). La nota
-se recalcula en cada carga, así que los insights descartados hoy se aprueban solos cuando
-entren más jornadas.
+**Caldran més jornades** — la dada existeix, però encara no té prou mostra per ordenar
+equips: gols als primers 20 minuts, gols de resposta en menys de 10 minuts, gols
+encaixats just després de marcar, penals, rendiment segons l'àrbitre, segons el dia i
+l'hora, i segons els quilòmetres del desplaçament.
 
-Estado con los datos actuales:
+**Es podria afegir descarregant més** — temporades anteriors, la resta d'equips del
+club, la Copa Catalunya, l'històric de sancions, el calendari amb camps i horaris.
 
-- **OK (8):** jugadores distintos utilizados · minuto medio de cambio · tarjetas por
-  partido · tarjetas en la segunda parte · goles por partido · goles encajados por
-  partido · % de goles en la segunda parte · porterías a cero.
-- **ORIENTATIVO (4):** goles como local · goles como visitante · goles desde el minuto 75
-  · goles marcados yendo por detrás.
-- **DESCARTADO (4):** goles en los primeros 20 minutos (14 en toda la liga) · goles de
-  respuesta en ≤10 min (11) · goles encajados justo después de marcar (11) · goles de
-  penal (4).
+**La FCF no ho publica** — tirs, xG, possessió, córners, faltes, passades, posicions i
+sistema, mapes de calor, edat i dades físiques, lesions, i els minuts de descompte reals.
 
-Dos decisiones que afectan a todos los rankings:
+## Com es validen els insights
 
-1. **Los equipos no han jugado lo mismo** (de 3 a 5 partidos), así que los rankings de
-   volumen van normalizados por partido, con el total al lado.
-2. **Las tarjetas del cuerpo técnico se separan** de las de jugadores (18 de 204) y no
-   entran en ningún ranking.
+Amb 5 jornades hi ha 34 partits, 90 gols i 186 targetes a jugadors. A aquest volum
+algunes preguntes es poden respondre i d'altres no, així que **cada insight declara el
+nombre d'esdeveniments que el sostenen i es qualifica abans d'arribar a l'app**:
 
-Para ver el informe de validación en consola:
+| Veredicte | Significat |
+|---|---|
+| `dada sòlida` | hi ha prou esdeveniments per descriure una tendència |
+| `poques dades` | real però fràgil: un partit pot reordenar el rànquing |
+| `molt poques dades` | massa pocs esdeveniments per ordenar equips; es mostra com a dada solta |
+
+Els llindars són a `uevalls/insights.py` (`UMBRAL_OK`, `UMBRAL_ORIENTATIVO`). La nota es
+recalcula a cada càrrega, així que els insights descartats avui s'aproven sols quan
+entrin més jornades.
+
+Dues decisions que afecten tots els rànquings:
+
+1. **Els equips no han jugat el mateix** (de 3 a 5 partits), així que els rànquings de
+   volum van normalitzats per partit, amb el total al costat.
+2. **Les targetes del cos tècnic se separen** de les de jugadors (18 de 204) i no entren
+   a cap rànquing.
+
+Per veure l'informe de validació per consola:
 
 ```bash
 python validate_insights.py
 ```
 
-Incluye un contraste contra la clasificación oficial de la FCF: PJ, puntos, G/E/P, GF y
-GC coinciden en los 16 equipos.
+Inclou un contrast contra la classificació oficial de la FCF: PJ, punts, G/E/P, GF i GC
+coincideixen als 16 equips.
 
-## Límites conocidos
+## Límits coneguts
 
-- **Descuento agrupado.** La FCF publica 45+X como minuto 44 y 90+X como minuto 89, así
-  que los tramos 31-45 y 76-90 salen inflados y ningún gol aparece por encima del 90.
-- **Minutos estimados.** Se calculan con titularidad, cambios y rojas, sin descuento, con
-  techo de 90.
-- **Doble amarilla.** El campo `segunda_amarilla` llega siempre vacío desde la FCF; la
-  expulsión por doble amarilla se identifica por el artículo de la sanción.
-- **Goles en propia.** Suman al equipo beneficiado y no se atribuyen a ningún goleador de
-  ese equipo.
+- **Descompte agrupat.** La FCF publica 45+X com a minut 44 i 90+X com a minut 89, així
+  que els trams 31-45 i 76-90 surten inflats i cap gol apareix per sobre del 90.
+- **Minuts estimats.** Es calculen amb titularitat, canvis i vermelles, sense descompte,
+  amb sostre de 90.
+- **Doble groga.** El camp `segunda_amarilla` arriba sempre buit des de la FCF;
+  l'expulsió per doble groga s'identifica per l'article de la sanció.
+- **Gols en pròpia.** Sumen a l'equip beneficiat i no s'atribueixen a cap golejador
+  d'aquell equip.
+- **Distàncies en línia recta.** Els quilòmetres són haversine entre camps, no ruta per
+  carretera.
 
 ## Estructura
 
 ```
-app.py                  interfaz Streamlit
-uevalls/data.py         lectura de Supabase vía PostgREST (paginada)
-uevalls/metrics.py      frames derivados: goles con contexto, equipo-partido, minutos, resumen
-uevalls/insights.py     catálogo de insights, umbrales y generación de informes
-validate_insights.py    informe de validación en consola
-tools/build_assets.py   copia los escudos y construye assets/equipos.json
-assets/                 escudos y mapa de equipos
-pipeline/scrape.py      descarga las actas de la FCF a data/*.json
-pipeline/load.py        carga esos JSON en Supabase (upsert, reejecutable)
-pipeline/README_bbdd.md documentación del modelo de datos y de las vistas SQL
+app.py                  interfície Streamlit
+uevalls/data.py         lectura de Supabase via PostgREST (paginada)
+uevalls/metrics.py      frames derivats: gols amb context, equip-partit, minuts, resum
+uevalls/advanced.py     estadístiques avançades reconstruïdes minut a minut
+uevalls/insights.py     catàleg d'insights, llindars i informes
+uevalls/ui.py           paleta, CSS i les peces HTML de les barres i targetes
+validate_insights.py    informe de validació per consola
+tools/build_assets.py   copia els escuts i construeix assets/equipos.json
+assets/                 escuts i mapa d'equips
+pipeline/scrape.py      descarrega les actes de la FCF a data/*.json
+pipeline/load.py        carrega aquests JSON a Supabase (upsert, reexecutable)
+pipeline/README_bbdd.md documentació del model de dades i de les vistes SQL
 ```
 
-El marcador antes de cada gol se reconstruye ordenando los goles del acta, lo que permite
-responder "¿marca yendo por detrás?" y "¿reacciona tras encajar?".
+El marcador abans de cada gol es reconstrueix ordenant els gols de l'acta, que és el que
+permet respondre "marca anant per darrere?" i "reacciona després d'encaixar?".
 
-## Ejecutar en local
+## Colors
+
+La paleta està validada amb el script de daltonisme i contrast: blau `#3987e5` i taronja
+`#d95926` per a les sèries, vermell `#E03A24` només per a l'equip en focus, i la paleta
+d'estat reservada per a les etiquetes de fiabilitat. Els rànquings fan servir **èmfasi**
+(un color per a tothom, l'equip triat ressaltat) i no una rampa de valor, perquè la
+llargada de la barra ja codifica la magnitud.
+
+## Executar en local
 
 ```bash
 pip install -r requirements.txt
+```
+
+```bash
 streamlit run app.py
 ```
 
-## Credenciales
+## Credencials
 
-La app lee con una clave **publishable** de Supabase y las tablas tienen RLS de solo
-lectura, así que la clave no puede escribir. El orden de resolución es: secrets de
-Streamlit → variables de entorno `SB_URL` / `SB_KEY` → valores por defecto en
-`uevalls/data.py`.
+L'app llegeix amb una clau **publishable** de Supabase i les taules tenen RLS de només
+lectura, així que la clau no pot escriure. L'ordre de resolució és: secrets de Streamlit
+→ variables d'entorn `SB_URL` / `SB_KEY` → valors per defecte a `uevalls/data.py`.
 
-Para Streamlit Cloud, copia `.streamlit/secrets.toml.example` en *App settings → Secrets*.
+Per a Streamlit Cloud, copia `.streamlit/secrets.toml.example` a *App settings → Secrets*.
 
-## Desplegar en Streamlit Community Cloud
+## Desplegar a Streamlit Community Cloud
 
-1. Sube esta carpeta a un repositorio de GitHub.
-2. En [share.streamlit.io](https://share.streamlit.io) elige *New app*, selecciona el
-   repositorio y pon `app.py` como *Main file path*.
-3. Pega el contenido de `.streamlit/secrets.toml.example` en *Secrets*.
+1. Puja aquesta carpeta a un repositori de GitHub.
+2. A [share.streamlit.io](https://share.streamlit.io) tria *New app*, selecciona el
+   repositori i posa `app.py` com a *Main file path*.
+3. Enganxa el contingut de `.streamlit/secrets.toml.example` a *Secrets*.
 4. Deploy.
 
-## Actualizar tras cada jornada
+## Actualitzar després de cada jornada
 
-Los datos vienen de la base **UEValls**. Cuando se carguen jornadas nuevas, la app las
-coge sola (caché de 30 minutos, o botón *Recargar datos*).
-
-Para cargar la jornada nueva:
+Les dades vénen de la base **UEValls**. Quan es carreguin jornades noves, l'app les
+agafa sola (memòria cau de 30 minuts).
 
 ```bash
 python -I pipeline/scrape.py 58161861
 ```
 
 ```bash
-$env:SB_URL="https://ghkbgfxkhdjjsyvlywrx.supabase.co"; $env:SB_KEY="<clave_de_escritura>"; python -I pipeline/load.py
+$env:SB_URL="https://ghkbgfxkhdjjsyvlywrx.supabase.co"; $env:SB_KEY="<clau_escriptura>"; python -I pipeline/load.py
 ```
 
-`load.py` hace upsert por clave natural, así que se puede reejecutar sin duplicar nada.
-La clave publishable es de solo lectura: para cargar hace falta una con permiso de
-escritura (service role), y nunca debe acabar en el repositorio.
+`load.py` fa upsert per clau natural, així que es pot reexecutar sense duplicar res. La
+clau publishable és de només lectura: per carregar cal una amb permís d'escriptura
+(service role), i no ha d'acabar mai al repositori.

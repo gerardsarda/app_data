@@ -47,9 +47,9 @@ MUDO = "#818A95"
 # reserved status palette
 ESTADO = {"OK": "#0ca30c", "ORIENTATIVO": "#fab219", "DESCARTADO": "#d03b3b"}
 ESTADO_ETIQUETA = {
-    "OK": "dato sólido",
-    "ORIENTATIVO": "pocos datos",
-    "DESCARTADO": "muy pocos datos",
+    "OK": "dada sòlida",
+    "ORIENTATIVO": "poques dades",
+    "DESCARTADO": "molt poques dades",
 }
 
 SIGNO_COLOR = {"V": "#0ca30c", "E": "#7E8792", "D": "#d03b3b"}
@@ -151,6 +151,17 @@ div[data-baseweb="tab-highlight"] { background-color: var(--rojo) !important; he
 .uev-dato .n { font-size: 1.9rem; font-weight: 800; color: var(--tinta); line-height: 1; }
 .uev-dato .t { font-size: .85rem; color: var(--tinta2); font-weight: 600; }
 
+/* label + value lines, the densest way to show many numbers */
+.uev-linia {
+  display: flex; justify-content: space-between; align-items: baseline; gap: 10px;
+  padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,.06); font-size: .88rem;
+  color: var(--tinta2); font-weight: 600;
+}
+.uev-linia:last-child { border-bottom: none; }
+.uev-linia b { color: var(--tinta); font-weight: 800; font-size: 1.02rem;
+               font-variant-numeric: tabular-nums; white-space: nowrap; }
+.uev-linia .ap { color: var(--muda); font-weight: 700; font-size: .78rem; }
+
 /* team picker buttons */
 div[data-testid="column"] .stButton > button {
   width: 100%%; font-size: .78rem; font-weight: 700; padding: 3px 4px;
@@ -195,6 +206,17 @@ def fila_ranking(pos: int, slug: str | None, nombre: str, valor: str, ancho: flo
 def tarjeta(titulo: str, cuerpo: str, subtitulo: str = "", extra: str = "") -> str:
     sub = "<div class='sub'>%s</div>" % subtitulo if subtitulo else ""
     return "<div class='uev-card'><h4>%s %s</h4>%s%s</div>" % (titulo, extra, sub, cuerpo)
+
+
+def linies(items: list[tuple]) -> str:
+    """A dense label/value list. Each item is (label, value) or (label, value, note)."""
+    filas = []
+    for item in items:
+        etiqueta, valor = item[0], item[1]
+        nota = (" <span class='ap'>%s</span>" % item[2]) if len(item) > 2 else ""
+        filas.append("<div class='uev-linia'><span>%s</span><b>%s%s</b></div>"
+                     % (etiqueta, valor, nota))
+    return "".join(filas)
 
 
 def dato(numero: str, texto: str) -> str:

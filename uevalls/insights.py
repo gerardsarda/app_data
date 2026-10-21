@@ -65,43 +65,43 @@ class Ranking:
 
 
 RANKINGS: List[Ranking] = [
-    Ranking("gf_casa", "Más goles como local", "gf_casa_por_partido", "goles/partido",
-            "goles marcados por el equipo local", columna_apoyo="gf_casa",
-            nota="Normalizado por partidos en casa: los equipos no han jugado los mismos."),
-    Ranking("gf_fuera", "Más goles como visitante", "gf_fuera_por_partido", "goles/partido",
-            "goles marcados por el equipo visitante", columna_apoyo="gf_fuera"),
-    Ranking("gf_total", "Más goles por partido", "gf_por_partido", "goles/partido",
-            "goles totales", columna_apoyo="gf"),
-    Ranking("gc_total", "Menos goles encajados por partido", "gc_por_partido", "goles/partido",
-            "goles totales", ascendente=True, columna_apoyo="gc"),
-    Ranking("tarjetas_p2", "Más tarjetas en la segunda parte", "tarjetas_p2_por_partido",
-            "tarjetas/partido", "tarjetas a jugadores en la segunda parte",
+    Ranking("gf_casa", "Més gols com a local", "gf_casa_por_partido", "gols/partit",
+            "gols marcats per l'equip local", columna_apoyo="gf_casa",
+            nota="Normalitzat per partits a casa: els equips no han jugat els mateixos."),
+    Ranking("gf_fuera", "Més gols com a visitant", "gf_fuera_por_partido", "gols/partit",
+            "gols marcats per l'equip visitant", columna_apoyo="gf_fuera"),
+    Ranking("gf_total", "Més gols per partit", "gf_por_partido", "gols/partit",
+            "gols totals", columna_apoyo="gf"),
+    Ranking("gc_total", "Menys gols encaixats per partit", "gc_por_partido", "gols/partit",
+            "gols totals", ascendente=True, columna_apoyo="gc"),
+    Ranking("tarjetas_p2", "Més targetes a la segona part", "tarjetas_p2_por_partido",
+            "targetes/partit", "targetes a jugadors a la segona part",
             columna_apoyo="tarjetas_p2",
-            nota="Solo tarjetas a jugadores. Las del banquillo se cuentan aparte."),
-    Ranking("tarjetas_total", "Más tarjetas por partido", "tarjetas_por_partido",
-            "tarjetas/partido", "tarjetas a jugadores", columna_apoyo="amarillas"),
-    Ranking("gf_p2_pct", "Mayor porcentaje de goles en la segunda parte", "pct_gf_p2",
-            "% de sus goles", "goles totales", columna_apoyo="gf_p2"),
-    Ranking("gf_final", "Más goles en los últimos 15 minutos", "gf_m75", "goles",
-            "goles desde el minuto 75", columna_apoyo="gf_m75"),
-    Ranking("gf_perdiendo", "Más goles marcados por detrás en el marcador", "gf_perdiendo",
-            "goles", "goles marcados yendo por detrás", columna_apoyo="gf_perdiendo"),
-    Ranking("gf_inicio", "Más goles en los primeros 20 minutos", "gf_m20", "goles",
-            "goles antes del minuto 21", columna_apoyo="gf_m20"),
-    Ranking("gf_respuesta", "Más goles de respuesta (≤10 min tras encajar)", "gf_respuesta",
-            "goles", "goles llegados ≤10 min después de encajar", columna_apoyo="gf_respuesta"),
-    Ranking("gc_tras_marcar", "Más goles encajados justo después de marcar", "gc_tras_marcar",
-            "goles", "goles encajados ≤10 min después de marcar",
+            nota="Nomes targetes a jugadors. Les de la banqueta es compten a part."),
+    Ranking("tarjetas_total", "Més targetes per partit", "tarjetas_por_partido",
+            "targetes/partit", "targetes a jugadors", columna_apoyo="amarillas"),
+    Ranking("gf_p2_pct", "Més percentatge de gols a la segona part", "pct_gf_p2",
+            "% dels seus gols", "gols totals", columna_apoyo="gf_p2"),
+    Ranking("gf_final", "Més gols als últims 15 minuts", "gf_m75", "gols",
+            "gols des del minut 75", columna_apoyo="gf_m75"),
+    Ranking("gf_perdiendo", "Més gols marcats anant per darrere", "gf_perdiendo",
+            "gols", "gols marcats anant per darrere", columna_apoyo="gf_perdiendo"),
+    Ranking("gf_inicio", "Més gols als primers 20 minuts", "gf_m20", "gols",
+            "gols abans del minut 21", columna_apoyo="gf_m20"),
+    Ranking("gf_respuesta", "Més gols de resposta (≤10 min després d'encaixar)", "gf_respuesta",
+            "gols", "gols arribats ≤10 min després d'encaixar", columna_apoyo="gf_respuesta"),
+    Ranking("gc_tras_marcar", "Més gols encaixats just després de marcar", "gc_tras_marcar",
+            "gols", "gols encaixats ≤10 min després de marcar",
             columna_apoyo="gc_tras_marcar"),
-    Ranking("cambios_pronto", "Cambios más tempranos", "min_cambio_medio", "minuto medio",
-            "sustituciones", ascendente=True, columna_apoyo="cambios"),
-    Ranking("plantilla", "Más jugadores distintos utilizados", "jugadores_usados", "jugadores",
-            "comparecencias en acta", columna_apoyo="pj"),
-    Ranking("porterias_cero", "Más porterías a cero", "porterias_cero", "partidos",
-            "partidos-equipo observados", columna_apoyo="pj",
-            nota="Se mide sobre partidos, no sobre goles: la base son los 68 "
-                 "partidos-equipo disputados."),
-    Ranking("penales", "Más goles de penal", "gf_penal", "goles", "goles de penal",
+    Ranking("cambios_pronto", "Canvis més primerencs", "min_cambio_medio", "minut mitjà",
+            "substitucions", ascendente=True, columna_apoyo="cambios"),
+    Ranking("plantilla", "Més jugadors diferents utilitzats", "jugadores_usados", "jugadors",
+            "compareixences a l'acta", columna_apoyo="pj"),
+    Ranking("porterias_cero", "Més porteries a zero", "porterias_cero", "partits",
+            "partits-equip observats", columna_apoyo="pj",
+            nota="Es mesura sobre partits, no sobre gols: la base son els partits-equip "
+                 "disputats."),
+    Ranking("penales", "Més gols de penal", "gf_penal", "gols", "gols de penal",
             columna_apoyo="gf_penal"),
 ]
 
@@ -113,21 +113,21 @@ def poblaciones(frames: Dict[str, pd.DataFrame]) -> Dict[str, int]:
     tj = t[t["es_jugador"]]
     ep = frames["equipo_partido"]
     return {
-        "goles totales": len(g),
-        "goles marcados por el equipo local": int(g["favor_en_casa"].sum()),
-        "goles marcados por el equipo visitante": int((~g["favor_en_casa"]).sum()),
-        "goles desde el minuto 75": int((g["minuto"] >= 75).sum()),
-        "goles antes del minuto 21": int((g["minuto"] <= 20).sum()),
-        "goles marcados yendo por detrás": int((g["estado"] == "perdiendo").sum()),
-        "goles llegados ≤10 min después de encajar": int(g["es_respuesta"].sum()),
-        "goles encajados ≤10 min después de marcar": int(g["es_respuesta"].sum()),
-        "goles de penal": int(g["es_penal"].sum()),
-        "tarjetas a jugadores": len(tj),
-        "tarjetas a jugadores en la segunda parte": int((tj["parte"] == 2).sum()),
-        "sustituciones": len(frames["cambios"]),
-        "comparecencias en acta": len(frames["minutos"]),
-        "partidos-equipo observados": len(ep),
-        "partidos con portería a cero": int(ep["porteria_cero"].sum()),
+        "gols totals": len(g),
+        "gols marcats per l'equip local": int(g["favor_en_casa"].sum()),
+        "gols marcats per l'equip visitant": int((~g["favor_en_casa"]).sum()),
+        "gols des del minut 75": int((g["minuto"] >= 75).sum()),
+        "gols abans del minut 21": int((g["minuto"] <= 20).sum()),
+        "gols marcats anant per darrere": int((g["estado"] == "perdent").sum()),
+        "gols arribats ≤10 min després d'encaixar": int(g["es_respuesta"].sum()),
+        "gols encaixats ≤10 min després de marcar": int(g["es_respuesta"].sum()),
+        "gols de penal": int(g["es_penal"].sum()),
+        "targetes a jugadors": len(tj),
+        "targetes a jugadors a la segona part": int((tj["parte"] == 2).sum()),
+        "substitucions": len(frames["cambios"]),
+        "compareixences a l'acta": len(frames["minutos"]),
+        "partits-equip observats": len(ep),
+        "partits amb porteria a zero": int(ep["porteria_cero"].sum()),
     }
 
 
@@ -179,7 +179,7 @@ class Hallazgo:
 
 def _pct(parte: int, total: int) -> str:
     if not total:
-        return "sin datos"
+        return "sense dades"
     return "%d de %d (%.0f%%)" % (parte, total, 100 * parte / total)
 
 
@@ -203,8 +203,8 @@ def informe_equipo(frames: Dict[str, pd.DataFrame], cod_equipo: int) -> List[Hal
     n = len(gf)
     out.append(
         Hallazgo(
-            "Reparto por partes",
-            "Marca %s en la segunda parte y %s en la primera."
+            "Repartiment per parts",
+            "Marca %s a la segona part i %s a la primera."
             % (_pct(int((gf["parte"] == 2).sum()), n), _pct(int((gf["parte"] == 1).sum()), n)),
             n,
             gr(n),
@@ -215,8 +215,8 @@ def informe_equipo(frames: Dict[str, pd.DataFrame], cod_equipo: int) -> List[Hal
     base_doble = min(n, len(gc))
     out.append(
         Hallazgo(
-            "Arranque",
-            "En los primeros 20 minutos marca %s y encaja %s."
+            "Arrencada",
+            "Als primers 20 minuts marca %s i encaixa %s."
             % (
                 _pct(int((gf["minuto"] <= 20).sum()), n),
                 _pct(int((gc["minuto"] <= 20).sum()), len(gc)),
@@ -228,8 +228,8 @@ def informe_equipo(frames: Dict[str, pd.DataFrame], cod_equipo: int) -> List[Hal
 
     out.append(
         Hallazgo(
-            "Tramo final",
-            "Desde el minuto 75 marca %s y encaja %s."
+            "Tram final",
+            "Des del minut 75 marca %s i encaixa %s."
             % (
                 _pct(int((gf["minuto"] >= 75).sum()), n),
                 _pct(int((gc["minuto"] >= 75).sum()), len(gc)),
@@ -241,12 +241,12 @@ def informe_equipo(frames: Dict[str, pd.DataFrame], cod_equipo: int) -> List[Hal
 
     out.append(
         Hallazgo(
-            "Estado del marcador al marcar",
-            "Marca %s yendo por detrás, %s con empate y %s por delante."
+            "Estat del marcador en marcar",
+            "Marca %s anant per darrere, %s amb empat i %s per davant."
             % (
-                _pct(int((gf["estado"] == "perdiendo").sum()), n),
-                _pct(int((gf["estado"] == "empate").sum()), n),
-                _pct(int((gf["estado"] == "ganando").sum()), n),
+                _pct(int((gf["estado"] == "perdent").sum()), n),
+                _pct(int((gf["estado"] == "empat").sum()), n),
+                _pct(int((gf["estado"] == "guanyant").sum()), n),
             ),
             n,
             gr(n),
@@ -257,9 +257,9 @@ def informe_equipo(frames: Dict[str, pd.DataFrame], cod_equipo: int) -> List[Hal
     castigo = int(gc["es_respuesta"].sum())
     out.append(
         Hallazgo(
-            "Reacción inmediata",
-            "Responde en los 10 minutos siguientes a encajar %d veces; "
-            "encaja en los 10 minutos siguientes a marcar %d veces." % (resp, castigo),
+            "Reacció immediata",
+            "Respon en els 10 minuts seguents a encaixar %d vegades; "
+            "encaixa en els 10 minuts seguents a marcar %d vegades." % (resp, castigo),
             resp + castigo,
             gr(resp + castigo),
         )
@@ -267,8 +267,8 @@ def informe_equipo(frames: Dict[str, pd.DataFrame], cod_equipo: int) -> List[Hal
 
     out.append(
         Hallazgo(
-            "Casa y fuera",
-            "En casa %.2f goles por partido y fuera %.2f, sobre %d y %d partidos."
+            "Casa i fora",
+            "A casa %.2f gols per partit i fora %.2f, sobre %d i %d partits."
             % (
                 mi[mi["es_local"]]["gf_total"].mean() if (mi["es_local"]).any() else 0,
                 mi[~mi["es_local"]]["gf_total"].mean() if (~mi["es_local"]).any() else 0,
@@ -284,7 +284,7 @@ def informe_equipo(frames: Dict[str, pd.DataFrame], cod_equipo: int) -> List[Hal
     out.append(
         Hallazgo(
             "Disciplina",
-            "%d tarjetas a jugadores, %s en la segunda parte. %.2f por partido."
+            "%d targetes a jugadors, %s a la segona part. %.2f per partit."
             % (nt, _pct(int((mis_t["parte"] == 2).sum()), nt), nt / max(len(mi), 1)),
             nt,
             gr(nt),
@@ -293,10 +293,10 @@ def informe_equipo(frames: Dict[str, pd.DataFrame], cod_equipo: int) -> List[Hal
 
     out.append(
         Hallazgo(
-            "Banquillo",
-            "%d sustituciones, minuto medio %.1f." % (len(mis_c), mis_c["minuto"].mean())
+            "Banqueta",
+            "%d substitucions, minut mitja %.1f." % (len(mis_c), mis_c["minuto"].mean())
             if len(mis_c)
-            else "Sin sustituciones registradas.",
+            else "Sense substitucions registrades.",
             len(mis_c),
             gr(len(mis_c)),
         )
@@ -311,14 +311,14 @@ def dependencia_goleadora(frames: Dict[str, pd.DataFrame], personas: pd.DataFram
     from . import metrics  # local import keeps the module import-light
 
     tabla = metrics.goleadores(frames["goles"], personas, cod_equipo)
-    total = int(tabla["goles"].sum())
+    total = int(tabla["gols"].sum())
     if total == 0:
-        return Hallazgo("Dependencia goleadora", "El equipo no ha marcado todavía.", 0,
+        return Hallazgo("Dependència golejadora", "L'equip encara no ha marcat.", 0,
                         "DESCARTADO", tabla)
     top = tabla.iloc[0]
-    texto = "%s concentra %s de los goles de jugada y penal del equipo." % (
+    texto = "%s concentra %s dels gols de jugada i penal de l'equip." % (
         top["jugador"],
-        _pct(int(top["goles"]), total),
+        _pct(int(top["gols"]), total),
     )
-    return Hallazgo("Dependencia goleadora", texto, total,
+    return Hallazgo("Dependència golejadora", texto, total,
                     grado(total, UMBRAL_EQUIPO_OK, UMBRAL_EQUIPO_ORIENTATIVO), tabla)

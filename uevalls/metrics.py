@@ -73,6 +73,9 @@ def build(raw: Dict[str, pd.DataFrame], jornadas: tuple | None = None) -> Dict[s
     return {
         "equipos": equipos,
         "personas": raw["personas"],
+        "campos": raw["campos"],
+        "sustituciones": raw["sustituciones"],
+        "alineaciones": raw["alineaciones"],
         "partidos": partidos,
         "goles": goles,
         "equipo_partido": equipo_partido,
@@ -107,10 +110,11 @@ def _goles(goles: pd.DataFrame, partidos: pd.DataFrame, nombres: dict) -> pd.Dat
         g["marcador_local_antes"] - g["marcador_visitante_antes"],
         g["marcador_visitante_antes"] - g["marcador_local_antes"],
     )
+    # user-facing labels are Catalan; the column names stay as they are
     g["estado"] = np.select(
         [g["dif_antes"] < 0, g["dif_antes"] == 0],
-        ["perdiendo", "empate"],
-        default="ganando",
+        ["perdent", "empat"],
+        default="guanyant",
     )
 
     # minutes elapsed since the opponent last scored; for the conceding team the
@@ -135,7 +139,7 @@ def _goles(goles: pd.DataFrame, partidos: pd.DataFrame, nombres: dict) -> pd.Dat
     g["equipo_contra"] = g["cod_equipo_contra"].map(nombres)
     g["favor_en_casa"] = g["cod_equipo_favor"] == g["cod_equipo_local"]
     g["tipo"] = np.select(
-        [g["es_propia"], g["es_penal"]], ["en propia", "de penal"], default="de jugada"
+        [g["es_propia"], g["es_penal"]], ["en pròpia", "de penal"], default="de jugada"
     )
     return g
 
