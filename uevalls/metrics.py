@@ -41,13 +41,21 @@ def tramo(minuto: int) -> str:
     return TRAMO_LABELS[-1] if minuto > 90 else TRAMO_LABELS[0]
 
 
-def _played(partidos: pd.DataFrame) -> pd.DataFrame:
-    return partidos[partidos["jugado"]].copy()
+def _played(partidos: pd.DataFrame, jornadas: tuple | None = None) -> pd.DataFrame:
+    p = partidos[partidos["jugado"]].copy()
+    if jornadas:
+        p = p[(p["jornada"] >= jornadas[0]) & (p["jornada"] <= jornadas[1])]
+    return p
 
 
-def build(raw: Dict[str, pd.DataFrame]) -> Dict[str, pd.DataFrame]:
-    """Build every derived frame from the raw tables."""
-    partidos = _played(raw["partidos"])
+def build(raw: Dict[str, pd.DataFrame], jornadas: tuple | None = None) -> Dict[str, pd.DataFrame]:
+    """Build every derived frame from the raw tables.
+
+    `jornadas` restricts the whole app to a (first, last) matchday range; every
+    derived frame is rebuilt from that subset, so the filter reaches the rankings
+    and the team reports alike.
+    """
+    partidos = _played(raw["partidos"], jornadas)
     equipos = raw["equipos"][["cod_equipo", "nombre", "escudo"]].rename(
         columns={"nombre": "equipo"}
     )

@@ -3,16 +3,19 @@
 App en Streamlit sobre los datos oficiales de la FCF (Lliga Elit, Grup 1, temporada
 2026-27) guardados en el proyecto Supabase **UEValls**.
 
-Tiene cuatro secciones:
+Cuatro pestañas:
 
-- **Liga** — clasificación completa (con GF/GC por partes y por localía) y los rankings
-  top-N, cada uno con su etiqueta de fiabilidad.
-- **Equipo** — informe individual: reparto por partes, arranque, tramo final, estado del
-  marcador al marcar, reacción tras encajar, casa/fuera, disciplina, banquillo,
-  dependencia goleadora, lista completa de goles con goleador y minuto, tarjetas,
-  minutos jugados y resultados jornada a jornada.
+- **Clasificación** — tabla visual con escudo, diferencia de goles, racha de los últimos
+  cinco partidos y puntos; debajo, cuándo y dónde se marca en la liga.
+- **Rankings** — tops por tema (Goles, Defensa, Tarjetas, Banquillo) en barras, con el
+  equipo seleccionado resaltado en rojo y la etiqueta de fiabilidad en cada tarjeta.
+- **Equipo** — rejilla con los 16 escudos para elegir equipo y, debajo, su informe:
+  KPIs, cuándo marca y encaja, con qué marcador marca, casa/fuera, goleadores, tarjetas,
+  minutos, partidos y lista completa de goles.
 - **Jugadores** — goleadores, tarjetas y minutos de toda la liga.
-- **Metodología** — la tabla de validación de insights y los límites conocidos.
+
+Un slider de jornadas en la cabecera recalcula **toda** la app sobre el rango elegido, y
+el botón *Leyenda* explica las etiquetas de fiabilidad y los tres avisos sobre la fuente.
 
 ## Cómo se validan los insights
 

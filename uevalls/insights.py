@@ -54,9 +54,11 @@ class Ranking:
     nota: str = ""
 
     def tabla(self, resumen: pd.DataFrame, top: int = 3) -> pd.DataFrame:
-        cols = ["equipo", self.columna, "pj"]
-        if self.columna_apoyo:
-            cols.insert(2, self.columna_apoyo)
+        # columna_apoyo is sometimes the same column as the metric, so de-duplicate
+        # before selecting: a repeated label makes sort_values ambiguous.
+        cols = ["cod_equipo", "equipo", self.columna, "pj"]
+        if self.columna_apoyo and self.columna_apoyo not in cols:
+            cols.insert(3, self.columna_apoyo)
         t = resumen[cols].dropna(subset=[self.columna])
         t = t.sort_values(self.columna, ascending=self.ascendente).head(top)
         return t.reset_index(drop=True)
