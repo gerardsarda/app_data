@@ -10,7 +10,6 @@ so they are called straight from the UI without caching.
 
 from __future__ import annotations
 
-import math
 from typing import Dict, List
 
 import numpy as np
@@ -309,63 +308,6 @@ def perfil_partits(frames: Dict[str, pd.DataFrame], cod: int) -> Dict[str, float
     }
 
 
-# --------------------------------------------------------------------------- #
-# travel
-# --------------------------------------------------------------------------- #
-def _haversine(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
-    radi = 6371.0
-    dlat = math.radians(lat2 - lat1)
-    dlon = math.radians(lon2 - lon1)
-    a = (
-        math.sin(dlat / 2) ** 2
-        + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dlon / 2) ** 2
-    )
-    return radi * 2 * math.asin(math.sqrt(a))
-
-
-def desplacaments(frames: Dict[str, pd.DataFrame], cod: int) -> pd.DataFrame:
-    """Straight-line distance from the team's own pitch to each away ground."""
-    partidos = frames["partidos"]
-    campos = frames["campos"].set_index("cod_campo")
-    ep = frames["equipo_partido"]
-    mis = ep[ep["cod_equipo"] == cod]
-
-    locals_ = partidos[partidos["cod_equipo_local"] == cod]
-    if locals_.empty or locals_["cod_campo"].isna().all():
-        return pd.DataFrame()
-    propi = int(locals_["cod_campo"].mode().iloc[0])
-    if propi not in campos.index:
-        return pd.DataFrame()
-    base = campos.loc[propi]
-    if pd.isna(base["latitud"]) or pd.isna(base["longitud"]):
-        return pd.DataFrame()
-
-    filas = []
-    for _, p in mis[~mis["es_local"]].iterrows():
-        info = partidos[partidos["cod_acta"] == p["cod_acta"]].iloc[0]
-        camp = info["cod_campo"]
-        if pd.isna(camp) or int(camp) not in campos.index:
-            continue
-        destino = campos.loc[int(camp)]
-        if pd.isna(destino["latitud"]) or pd.isna(destino["longitud"]):
-            continue
-        filas.append(
-            {
-                "jornada": int(p["jornada"]),
-                "rival": p["rival"],
-                "camp": destino["nombre"],
-                "km": round(
-                    _haversine(float(base["latitud"]), float(base["longitud"]),
-                               float(destino["latitud"]), float(destino["longitud"])),
-                    1,
-                ),
-                "punts": int(p["puntos"]),
-                "resultat": "%d-%d" % (int(p["gf_total"]), int(p["gc_total"])),
-            }
-        )
-    return pd.DataFrame(filas).sort_values("km", ascending=False).reset_index(drop=True)
-
-
 def taula_lliga(frames: Dict[str, pd.DataFrame]) -> pd.DataFrame:
     """The advanced per-team numbers for every team, ready to rank."""
     filas = []
@@ -379,7 +321,6 @@ def taula_lliga(frames: Dict[str, pd.DataFrame]) -> pd.DataFrame:
         ratxa = ratxa_sense_encaixar(frames, cod)
         perfil = perfil_partits(frames, cod)
         canvis = perfil_canvis(frames, cod)
-        km = desplacaments(frames, cod)
         filas.append(
             {
                 "cod_equipo": cod,
@@ -400,7 +341,6 @@ def taula_lliga(frames: Dict[str, pd.DataFrame]) -> pd.DataFrame:
                 "ambdos_marquen": perfil.get("ambdos_marquen", 0),
                 "gols_per_partit": round(perfil.get("gols_per_partit", 0.0), 2),
                 "primer_canvi": round(canvis.get("primer_canvi", 0.0), 1),
-                "km_totals": float(km["km"].sum()) if len(km) else 0.0,
             }
         )
     return pd.DataFrame(filas)

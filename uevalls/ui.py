@@ -82,7 +82,7 @@ html, body, [class*="st-"] { font-size: 16px; }
 
 h1 { font-size: 2.4rem !important; font-weight: 800 !important; letter-spacing: -.02em; }
 h2 { font-size: 1.6rem !important; font-weight: 800 !important; letter-spacing: -.01em; }
-h3 { font-size: 1.15rem !important; font-weight: 700 !important; }
+h3 { font-size: 1.3rem !important; font-weight: 800 !important; margin-top: .4rem; }
 
 section.main .block-container { padding-top: 1.2rem; max-width: 1500px; }
 
@@ -101,29 +101,30 @@ div[data-baseweb="tab-highlight"] { background-color: var(--rojo) !important; he
 /* generic card */
 .uev-card {
   background: var(--superficie); border: 1px solid var(--borde);
-  border-radius: 14px; padding: 16px 18px; margin-bottom: 14px;
+  border-radius: 16px; padding: 20px 22px; margin-bottom: 20px;
 }
 .uev-card h4 {
-  margin: 0 0 2px 0; font-size: 1.02rem; font-weight: 800; color: var(--tinta);
+  margin: 0 0 4px 0; font-size: 1.12rem; font-weight: 800; color: var(--tinta);
   letter-spacing: -.01em;
 }
-.uev-card .sub { font-size: .8rem; color: var(--muda); font-weight: 600; }
+.uev-card .sub { font-size: .82rem; color: var(--muda); font-weight: 600;
+                 margin-bottom: 10px; }
 
 /* ranking rows */
-.uev-fila { display: flex; align-items: center; gap: 10px; margin: 9px 0; }
+.uev-fila { display: flex; align-items: center; gap: 12px; margin: 13px 0; }
 .uev-pos {
   width: 20px; text-align: right; font-size: .85rem; font-weight: 800; color: var(--muda);
   font-variant-numeric: tabular-nums;
 }
-.uev-escudo { width: 26px; height: 26px; object-fit: contain; flex: 0 0 26px; }
+.uev-escudo { width: 28px; height: 28px; object-fit: contain; flex: 0 0 28px; }
 .uev-nombre {
-  width: 128px; font-size: .88rem; font-weight: 700; color: var(--tinta);
+  width: 128px; font-size: .95rem; font-weight: 700; color: var(--tinta);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.uev-pista { flex: 1; background: rgba(255,255,255,.05); border-radius: 5px; height: 16px; }
-.uev-barra { height: 16px; border-radius: 5px; }
+.uev-pista { flex: 1; background: rgba(255,255,255,.05); border-radius: 6px; height: 20px; }
+.uev-barra { height: 20px; border-radius: 6px; }
 .uev-valor {
-  width: 58px; text-align: right; font-size: .95rem; font-weight: 800; color: var(--tinta);
+  width: 62px; text-align: right; font-size: 1.05rem; font-weight: 800; color: var(--tinta);
   font-variant-numeric: tabular-nums;
 }
 .uev-apoyo { width: 40px; text-align: right; font-size: .78rem; color: var(--muda); font-weight: 600; }
@@ -136,8 +137,8 @@ div[data-baseweb="tab-highlight"] { background-color: var(--rojo) !important; he
 
 /* standings row */
 .uev-clas {
-  display: flex; align-items: center; gap: 12px; padding: 9px 12px; border-radius: 10px;
-  background: var(--superficie); border: 1px solid var(--borde); margin-bottom: 6px;
+  display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 12px;
+  background: var(--superficie); border: 1px solid var(--borde); margin-bottom: 8px;
 }
 .uev-clas.destacado { border-color: var(--rojo); background: rgba(224,58,36,.09); }
 .uev-pts { font-size: 1.35rem; font-weight: 800; width: 46px; text-align: right;
@@ -154,13 +155,61 @@ div[data-baseweb="tab-highlight"] { background-color: var(--rojo) !important; he
 /* label + value lines, the densest way to show many numbers */
 .uev-linia {
   display: flex; justify-content: space-between; align-items: baseline; gap: 10px;
-  padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,.06); font-size: .88rem;
+  padding: 11px 0; border-bottom: 1px solid rgba(255,255,255,.07); font-size: .95rem;
   color: var(--tinta2); font-weight: 600;
 }
 .uev-linia:last-child { border-bottom: none; }
-.uev-linia b { color: var(--tinta); font-weight: 800; font-size: 1.02rem;
+.uev-linia b { color: var(--tinta); font-weight: 800; font-size: 1.2rem;
                font-variant-numeric: tabular-nums; white-space: nowrap; }
 .uev-linia .ap { color: var(--muda); font-weight: 700; font-size: .78rem; }
+
+/* small pills used to hang extra numbers off a row */
+.uev-pill {
+  display: inline-block; border-radius: 7px; padding: 3px 9px; margin-left: 6px;
+  font-size: .78rem; font-weight: 800; font-variant-numeric: tabular-nums;
+}
+
+/* match timeline: a 0-90 track with a dot per goal */
+.uev-timeline { margin: 16px 0 22px 0; }
+.uev-tcap {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 8px;
+  font-size: .95rem; font-weight: 700; color: var(--tinta);
+}
+.uev-tcap .marcador { font-weight: 800; font-size: 1.05rem;
+                      font-variant-numeric: tabular-nums; }
+.uev-pista-t {
+  position: relative; height: 34px; border-radius: 8px;
+  background: rgba(255,255,255,.05);
+}
+.uev-mitja {
+  position: absolute; left: 50%%; top: 0; bottom: 0; width: 1px;
+  background: rgba(255,255,255,.14);
+}
+.uev-gol {
+  position: absolute; top: 50%%; transform: translate(-50%%, -50%%);
+  width: 22px; height: 22px; border-radius: 50%%; border: 2px solid var(--superficie);
+  font-size: .62rem; font-weight: 800; color: #fff; line-height: 20px;
+  text-align: center;
+}
+.uev-eix {
+  display: flex; justify-content: space-between; font-size: .68rem;
+  color: var(--muda); font-weight: 700; margin-top: 4px;
+}
+.uev-gols-llista { font-size: .84rem; color: var(--tinta2); font-weight: 600;
+                   margin-top: 6px; line-height: 1.7; }
+
+/* half time to full time */
+.uev-ht {
+  display: flex; align-items: center; gap: 14px; padding: 13px 16px;
+  border-radius: 12px; background: var(--superficie); border: 1px solid var(--borde);
+  margin-bottom: 9px;
+}
+.uev-ht .marc {
+  font-size: 1.1rem; font-weight: 800; font-variant-numeric: tabular-nums;
+  width: 54px; text-align: center; border-radius: 8px; padding: 4px 0;
+  background: rgba(255,255,255,.06);
+}
+.uev-fletxa { color: var(--muda); font-weight: 800; }
 
 /* team picker buttons */
 div[data-testid="column"] .stButton > button {
@@ -206,6 +255,83 @@ def fila_ranking(pos: int, slug: str | None, nombre: str, valor: str, ancho: flo
 def tarjeta(titulo: str, cuerpo: str, subtitulo: str = "", extra: str = "") -> str:
     sub = "<div class='sub'>%s</div>" % subtitulo if subtitulo else ""
     return "<div class='uev-card'><h4>%s %s</h4>%s%s</div>" % (titulo, extra, sub, cuerpo)
+
+
+def pill(text: str, color: str) -> str:
+    return ("<span class='uev-pill' style='background:%s22;color:%s'>%s</span>"
+            % (color, color, text))
+
+
+def timeline_partit(jornada: int, slug_rival: str | None, rival: str, gf: int, gc: int,
+                    on: str, signo: str, gols: list[dict]) -> str:
+    """One match as a 0-90 track with a dot for every goal.
+
+    `gols` items: {"minut": int, "a_favor": bool, "text": str}.
+    """
+    uri = escudo_uri(slug_rival)
+    img = ("<img class='uev-escudo' src='%s'>" % uri) if uri else ""
+    punts = []
+    for gol in sorted(gols, key=lambda x: x["minut"]):
+        color = SERIE_1 if gol["a_favor"] else SERIE_2
+        pos = 100.0 * min(gol["minut"], 90) / 90.0
+        punts.append(
+            "<div class='uev-gol' style='left:%.1f%%;background:%s' title='%s'>%d</div>"
+            % (pos, color, gol["text"], gol["minut"])
+        )
+    detall = " · ".join(
+        "<span style='color:%s'>%d' %s</span>"
+        % (SERIE_1 if g["a_favor"] else SERIE_2, g["minut"], g["text"])
+        for g in sorted(gols, key=lambda x: x["minut"])
+    )
+    return (
+        "<div class='uev-timeline'>"
+        "<div class='uev-tcap'><span style='color:%s;font-weight:800'>J%d</span>%s"
+        "<span style='flex:1'>%s</span>"
+        "<span style='color:%s;font-size:.8rem;font-weight:700'>%s</span>"
+        "<span class='marcador' style='color:%s'>%d-%d</span></div>"
+        "<div class='uev-pista-t'><div class='uev-mitja'></div>%s</div>"
+        "<div class='uev-eix'><span>0'</span><span>45'</span><span>90'</span></div>"
+        "<div class='uev-gols-llista'>%s</div>"
+        "</div>"
+        % (TINTA_MUDA, jornada, img, rival, TINTA_MUDA, on,
+           SIGNO_COLOR.get(signo, TINTA), gf, gc, "".join(punts),
+           detall or "<span style='color:%s'>Sense gols</span>" % TINTA_MUDA)
+    )
+
+
+def fila_descans(slug_rival: str | None, rival: str, descans: str, final: str,
+                 diferencia: int, signe_final: str) -> str:
+    uri = escudo_uri(slug_rival)
+    img = ("<img class='uev-escudo' src='%s'>" % uri) if uri else ""
+    if diferencia > 0:
+        color, texto = SIGNO_COLOR["V"], "+%d punts a la segona part" % diferencia
+    elif diferencia < 0:
+        color, texto = SIGNO_COLOR["D"], "%d punts a la segona part" % diferencia
+    else:
+        color, texto = TINTA_MUDA, "sense canvis"
+    # the final score is coloured by the result; the note carries the swing
+    return (
+        "<div class='uev-ht'>%s<span style='flex:1;font-weight:700'>%s</span>"
+        "<span class='marc'>%s</span><span class='uev-fletxa'>&rarr;</span>"
+        "<span class='marc' style='color:%s'>%s</span>"
+        "<span style='width:190px;text-align:right;color:%s;font-weight:700;"
+        "font-size:.85rem'>%s</span></div>"
+        % (img, rival, descans, SIGNO_COLOR.get(signe_final, TINTA), final, color, texto)
+    )
+
+
+def fila_jugador(pos: int, nom: str, valor: str, ancho: float, color: str,
+                 chips: str = "", ancho_nombre: int = 190) -> str:
+    return (
+        "<div class='uev-fila'>"
+        "<div class='uev-pos'>%d</div>"
+        "<div class='uev-nombre' style='width:%dpx' title='%s'>%s</div>"
+        "<div class='uev-pista'><div class='uev-barra' style='width:%.1f%%;"
+        "background:%s'></div></div>"
+        "<div class='uev-valor'>%s</div>"
+        "<div style='width:200px;text-align:right'>%s</div>"
+        "</div>" % (pos, ancho_nombre, nom, nom, max(ancho, 2.0), color, valor, chips)
+    )
 
 
 def linies(items: list[tuple]) -> str:
