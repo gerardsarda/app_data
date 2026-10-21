@@ -1,0 +1,82 @@
+{
+  "33033": {
+    "slug": "argentona",
+    "nombre_corto": "C.F. Argentona",
+    "abrev": "CFA"
+  },
+  "33045": {
+    "slug": "castelldefels",
+    "nombre_corto": "U.E. Castelldefels",
+    "abrev": "UEC"
+  },
+  "33296": {
+    "slug": "singuerlin",
+    "nombre_corto": "C.F. Singuerlín",
+    "abrev": "CFS"
+  },
+  "33459": {
+    "slug": "sant_just",
+    "nombre_corto": "Atlètic Sant Just",
+    "abrev": "ASJ"
+  },
+  "33722": {
+    "slug": "can_vidalet",
+    "nombre_corto": "C.F. Can Vidalet",
+    "abrev": "CFCV"
+  },
+  "33936": {
+    "slug": "valls",
+    "nombre_corto": "U.E. Valls",
+    "abrev": "UEV"
+  },
+  "33957": {
+    "slug": "san_mauro",
+    "nombre_corto": "U.D. San Mauro",
+    "abrev": "UDSM"
+  },
+  "34102": {
+    "slug": "rubi",
+    "nombre_corto": "U.E. Rubí",
+    "abrev": "UER"
+  },
+  "34233": {
+    "slug": "viladecans",
+    "nombre_corto": "U.D. Viladecans",
+    "abrev": "UDV"
+  },
+  "34413": {
+    "slug": "manlleu",
+    "nombre_corto": "A.E.C. Manlleu",
+    "abrev": "AECM"
+  },
+  "34739": {
+    "slug": "prat",
+    "nombre_corto": "A.E. Prat",
+    "abrev": "AEP"
+  },
+  "35109": {
+    "slug": "turo_peira",
+    "nombre_corto": "C.C.D. Turó Peira",
+    "abrev": "CCDTP"
+  },
+  "35529": {
+    "slug": "martorell",
+    "nombre_corto": "C.F. Martorell",
+    "abrev": "CFM"
+  },
+  "36389": {
+    "slug": "sabadell_b",
+    "nombre_corto": "C.E. Sabadell B",
+    "abrev": "CES"
+  },
+  "37124": {
+    "slug": "horta",
+    "nombre_corto": "U.At. Horta",
+    "abrev": "UAH"
+  },
+  "21224948": {
+    "slug": "vic",
+    "nombre_corto": "U.E. Vic",
+    "abrev": "VIC"
+  }
+}
