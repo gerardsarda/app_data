@@ -290,9 +290,9 @@ def _resumen_equipo(ep: pd.DataFrame, goles: pd.DataFrame, tarjetas: pd.DataFram
     ).reset_index()
 
     gf_ctx = goles.groupby("cod_equipo_favor").agg(
-        gf_perdiendo=("estado", lambda s: int((s == "perdiendo").sum())),
-        gf_empate=("estado", lambda s: int((s == "empate").sum())),
-        gf_ganando=("estado", lambda s: int((s == "ganando").sum())),
+        gf_perdiendo=("estado", lambda s: int((s == "perdent").sum())),
+        gf_empate=("estado", lambda s: int((s == "empat").sum())),
+        gf_ganando=("estado", lambda s: int((s == "guanyant").sum())),
         gf_respuesta=("es_respuesta", "sum"),
         gf_penal=("es_penal", "sum"),
         gf_m20=("minuto", lambda s: int((s <= 20).sum())),
