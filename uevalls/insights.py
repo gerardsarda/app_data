@@ -74,6 +74,8 @@ RANKINGS: List[Ranking] = [
             "gols totals", columna_apoyo="gf"),
     Ranking("gc_total", "Menys gols encaixats per partit", "gc_por_partido", "gols/partit",
             "gols totals", ascendente=True, columna_apoyo="gc"),
+    Ranking("gc_total_mes", "Més gols encaixats per partit", "gc_por_partido", "gols/partit",
+            "gols totals", columna_apoyo="gc"),
     Ranking("tarjetas_p2", "Més targetes a la segona part", "tarjetas_p2_por_partido",
             "targetes/partit", "targetes a jugadors a la segona part",
             columna_apoyo="tarjetas_p2",

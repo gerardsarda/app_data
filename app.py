@@ -289,7 +289,7 @@ def tab_classificacio(frames: Dict[str, pd.DataFrame], foco: int) -> None:
 # --------------------------------------------------------------------------- #
 FAMILIAS = {
     "Gols": ["gf_total", "gf_casa", "gf_fuera", "gf_p2_pct", "gf_final", "gf_perdiendo"],
-    "Defensa": ["gc_total", "porterias_cero"],
+    "Defensa": ["gc_total", "gc_total_mes", "porterias_cero"],
     "Targetes": ["tarjetas_p2", "tarjetas_total"],
     "Banqueta": ["plantilla", "cambios_pronto"],
 }
@@ -578,6 +578,9 @@ def _sub_gols(frames, cod, gf) -> None:
             unsafe_allow_html=True,
         )
         st.caption("Els gols en pròpia no s'atribueixen a cap golejador de l'equip.")
+        st.markdown("### Gols marcats per franja")
+        st.altair_chart(grafic_trams(gf, None, "Gols marcats", ui.SERIE_1, "A favor"),
+                        width="stretch")
     with c2:
         st.markdown("### Amb quin marcador marca")
         st.markdown(
